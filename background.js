@@ -8,6 +8,27 @@
  * MV3 service workers are shut down when idle, so the MRU stack is mirrored
  * to chrome.storage.session (in-memory, cleared on browser restart) and
  * restored whenever the worker wakes up.
+ *
+ * USING CTRL+TAB (one-time setup)
+ * Chrome won't let an extension ship Ctrl+Tab as its default shortcut (the
+ * manifest's suggested key is dropped because it clashes with Chrome's own
+ * "next tab"), and the chrome://extensions/shortcuts page refuses Tab. The
+ * page's own API does accept it, though, and the binding then overrides
+ * Chrome's Ctrl+Tab and survives restarts. To set it:
+ *   1. Open chrome://extensions/shortcuts
+ *   2. Open DevTools (F12 / Cmd+Opt+J) and go to the Console tab
+ *   3. Paste this and press Enter (Chrome may ask you to type "allow pasting"):
+ *
+ * chrome.developerPrivate.getExtensionsInfo({}, (exts) => {
+ *   const ext = exts.find((e) => e.name === 'Pure MRU Tab Switcher');
+ *   chrome.developerPrivate.updateExtensionCommand({
+ *     extensionId: ext.id,
+ *     commandName: 'switch-to-previous-tab',
+ *     keybinding: navigator.platform.startsWith('Mac') ? 'MacCtrl+Tab' : 'Ctrl+Tab',
+ *   }, () => console.log(chrome.runtime.lastError?.message ?? 'Ctrl+Tab is now bound'));
+ * });
+ *
+ * To undo it, set a different shortcut on that page as usual.
  */
 
 const COMMAND_SWITCH = 'switch-to-previous-tab';
@@ -129,8 +150,6 @@ async function focusTab(tabId) {
 }
 
 async function switchToPreviousTab() {
-  if (!(await getIsEnabled())) return;
-
   // Index 1 is the previously used tab. If its ID has gone stale, drop it and
   // fall through to the next candidate instead of doing nothing.
   for (const tabId of mruStack.slice(1)) {
@@ -147,6 +166,35 @@ async function switchToPreviousTab() {
       await saveStack();
     }
   }
+}
+
+/** Chrome's native Ctrl+Tab: the next tab to the right, wrapping around. */
+async function switchToNextTabInWindow() {
+  const tabs = await chrome.tabs.query({ lastFocusedWindow: true });
+  tabs.sort((a, b) => a.index - b.index);
+
+  const current = tabs.findIndex((tab) => tab.active);
+  if (current === -1 || tabs.length < 2) return;
+
+  await chrome.tabs.update(tabs[(current + 1) % tabs.length].id, { active: true });
+}
+
+/** True when the command has been rebound to Ctrl+Tab (shown as "⌃⇥" on macOS). */
+async function isBoundToCtrlTab() {
+  const commands = await chrome.commands.getAll();
+  const { shortcut = '' } = commands.find((c) => c.name === COMMAND_SWITCH) ?? {};
+  return /Tab|⇥/.test(shortcut);
+}
+
+async function onSwitchCommand() {
+  if (await getIsEnabled()) {
+    await switchToPreviousTab();
+  } else if (await isBoundToCtrlTab()) {
+    // While OFF, the command still owns Ctrl+Tab, so doing nothing would leave
+    // the key dead. Give it Chrome's default behavior back instead.
+    await switchToNextTabInWindow();
+  }
+  // OFF with any other shortcut (e.g. Alt+Y): do nothing.
 }
 
 // ---------------------------------------------------------------------------
@@ -206,5 +254,5 @@ chrome.action.onClicked.addListener(() => {
 });
 
 chrome.commands.onCommand.addListener((command) => {
-  if (command === COMMAND_SWITCH) enqueue(switchToPreviousTab);
+  if (command === COMMAND_SWITCH) enqueue(onSwitchCommand);
 });
