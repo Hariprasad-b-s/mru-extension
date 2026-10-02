@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Pure MRU Tab Switcher",
+  "name": "MRU tab switcher - Smooth like brave browser",
   "version": "1.0.0",
-  "description": "Jump to your most recently used tab with a keyboard shortcut. No overlays, no page access, no UI.",
+  "description": "Jump to your most recently used tab with a shortcut, and tap again to go further back. Works with Ctrl+Tab. No overlays.",
   "minimum_chrome_version": "110",
 
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxcSmyaHVBiETMJEnOURJvm3SWnRk+6RJ3NTH1MCQ8wF0usEg2iUNZK+d+K2J3A8AUnx21GhwjdQTWM/ZQIp27/CDx9ltUDYOcAtpjz62tiT/zPv5ckACZL1nSdlgyL26jNQNjcdBwgRDZn3fqK8B5/nrEKyFgtXoH7VSACLEvON+eH9mZRI2mvqRxWNorJY9MDuUUb0wjuZl7/jeA1ZExE2KYuWnrTy9Q+/X3IKEQCU9roYS8XMBGNh5Pde4hi+lpUzIBL3kKNk4AKH0ItJ9rCzMxaeI122ly8KQfwHyY56PXaOa0I7YU6TAO/xL9P08z8veglHdHsEXkMitDsx7owIDAQAB",
@@ -13,8 +13,19 @@
 
   "permissions": ["storage"],
 
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+
   "action": {
-    "default_title": "Pure MRU Tab Switcher"
+    "default_title": "MRU Tab Switcher",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
   },
 
   "commands": {

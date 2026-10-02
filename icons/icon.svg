@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="22" fill="url(#bg)"/>
+  <!-- The tab you were on, behind. -->
+  <rect x="36" y="16" width="44" height="40" rx="8" fill="#fff" fill-opacity=".45"/>
+  <!-- The current tab, in front, with a "go back" arrow. -->
+  <rect x="16" y="34" width="48" height="46" rx="8" fill="#fff"/>
+  <path d="M55 70 C55 58 48 52 37 52" fill="none" stroke="#4338CA" stroke-width="6" stroke-linecap="round"/>
+  <path d="M27 52 L39 43 L39 61 Z" fill="#4338CA" stroke="#4338CA" stroke-width="2" stroke-linejoin="round"/>
+</svg>

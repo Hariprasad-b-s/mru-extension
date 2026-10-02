@@ -1,5 +1,5 @@
 /**
- * Pure MRU Tab Switcher — background service worker.
+ * MRU Tab Switcher — background service worker.
  *
  * Tracks tabs in Most-Recently-Used order and, when the keyboard command
  * fires, switches to the previously used tab in the current window; pressing
@@ -18,10 +18,9 @@
  * page's own API does accept it, though, and the binding then overrides
  * Chrome's Ctrl+Tab and survives restarts. scripts/set-ctrl-tab-shortcut.js
  * sets it: open chrome://extensions/shortcuts, open DevTools (Ctrl+Shift+J,
- * or Cmd+Option+J on macOS), and paste that whole file into the Console.
- *
- * The extension's ID (olophmoglokjdojcacoihjcepmlhafag) is fixed by the "key"
- * in manifest.json, so the script works whatever folder it's loaded from.
+ * or Cmd+Option+J on macOS), and paste that whole file into the Console. It
+ * finds the extension by its command, so it works for a Chrome Web Store
+ * install and an unpacked one alike, whatever their IDs.
  */
 
 const COMMAND_SWITCH = 'switch-to-previous-tab';
@@ -122,7 +121,7 @@ async function renderBadge(isEnabled) {
     chrome.action.setBadgeText({ text }),
     chrome.action.setBadgeBackgroundColor({ color }),
     chrome.action.setBadgeTextColor({ color: '#FFFFFF' }),
-    chrome.action.setTitle({ title: `Pure MRU Tab Switcher: ${text} (${hint})` }),
+    chrome.action.setTitle({ title: `MRU Tab Switcher: ${text} (${hint})` }),
   ]);
 }
 
