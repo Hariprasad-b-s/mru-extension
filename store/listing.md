@@ -10,7 +10,7 @@ Brave is another company's trademark. The Web Store's policies on impersonation,
 
 ## Publish, step by step
 
-1. **Register as a developer.** Sign in at the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) with the Google account that should own the listing, pay the one-time registration fee, and verify your contact email.
+1. **Register as a developer.** Sign in at the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) with the Google account that should own the listing, pay the one-time registration fee, and verify your contact email. On the **Account** page, also declare your trader status (required for EU users): publishing as an individual rather than a business means **non-trader**.
 2. **Build the package.** In this repo, run `./scripts/package.sh`. It writes `dist/mru-tab-switcher-<version>.zip` containing only `manifest.json`, `background.js` and the icons, without the local development `"key"` (the store assigns its own ID).
 3. **Upload it.** Dashboard → **New item** → upload the zip.
 4. **Store listing tab:** paste the description below, pick the category and language, and upload the images listed below.
