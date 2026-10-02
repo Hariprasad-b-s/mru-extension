@@ -1,9 +1,10 @@
 /**
  * Pure MRU Tab Switcher — background service worker.
  *
- * Tracks tabs in Most-Recently-Used order and switches to the previous tab
- * when the keyboard command fires; pressing it again within a second goes
- * one tab further back (see CYCLE_PAUSE_MS). It never touches page content:
+ * Tracks tabs in Most-Recently-Used order and, when the keyboard command
+ * fires, switches to the previously used tab in the current window; pressing
+ * it again within a second goes one tab further back (see CYCLE_PAUSE_MS).
+ * Switching never leaves the focused window. It never touches page content:
  * no content scripts, no DOM injection, no overlays.
  *
  * MV3 service workers are shut down when idle, so the MRU stack is mirrored
@@ -146,7 +147,7 @@ const CYCLE_PAUSE_MS = 1000;
 /**
  * The cycle in progress, or null. Tabs merely passed through mid-cycle
  * aren't "used", so the stack is left alone until the cycle ends.
- *   order:       snapshot of the MRU stack taken at the first press
+ *   order:       the current window's tabs at the first press (see below)
  *   position:    index in `order` of the tab currently shown
  *   visited:     tab IDs this cycle activated (their tab events are ignored)
  *   lastPressAt: time of the latest press
@@ -154,10 +155,26 @@ const CYCLE_PAUSE_MS = 1000;
 let cycle = null;
 let cycleTimer;
 
-/** Activates a tab and focuses its window, in case it lives in another one. */
-async function focusTab(tabId) {
-  const tab = await chrome.tabs.update(tabId, { active: true });
-  await chrome.windows.update(tab.windowId, { focused: true });
+/**
+ * The tabs of the window the user is in, starting with the one on screen and
+ * then most recently used first. Cycling never leaves this window.
+ */
+async function currentWindowOrder() {
+  const [shown] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!shown) return [];
+
+  const tabs = await chrome.tabs.query({ windowId: shown.windowId });
+  const inWindow = new Set(tabs.map((tab) => tab.id));
+  const used = mruStack.filter((id) => inWindow.has(id) && id !== shown.id);
+
+  // Tabs opened in the background and never visited aren't in the stack yet;
+  // they come last, in tab-strip order.
+  const neverUsed = tabs
+    .sort((a, b) => a.index - b.index)
+    .map((tab) => tab.id)
+    .filter((id) => id !== shown.id && !used.includes(id));
+
+  return [shown.id, ...used, ...neverUsed];
 }
 
 /** Shows the next tab in the cycle order, skipping tabs that have closed. */
@@ -170,7 +187,7 @@ async function stepCycle() {
     const tabId = order[cycle.position];
     cycle.visited.add(tabId);
     try {
-      await focusTab(tabId);
+      await chrome.tabs.update(tabId, { active: true });
       return;
     } catch {
       removeFromStack(tabId); // stale ID; try the next one
@@ -185,9 +202,9 @@ async function finishCycle() {
   cycle = null;
   clearTimeout(cycleTimer);
 
-  // Record the tab the cycle stopped on directly: if it was already active in
-  // its own window, Chrome fired no onActivated for it. If it has since closed
-  // or the user clicked another tab in its window, record what's shown instead.
+  // Record the tab the cycle stopped on directly, since its onActivated was
+  // ignored as a cycle step. If it has since closed or the user clicked
+  // another tab in its window, record what's shown instead.
   const tab = await chrome.tabs.get(landedOn).catch(() => null);
   if (tab?.active) {
     moveToFront(landedOn);
@@ -206,8 +223,9 @@ async function finishCycleIfPaused() {
 async function cycleRecentTabs(pressedAt) {
   if (!cycle || pressedAt - cycle.lastPressAt >= CYCLE_PAUSE_MS) {
     await finishCycle();
-    if (mruStack.length < 2) return;
-    cycle = { order: [...mruStack], position: 0, visited: new Set(), lastPressAt: pressedAt };
+    const order = await currentWindowOrder();
+    if (order.length < 2) return;
+    cycle = { order, position: 0, visited: new Set(), lastPressAt: pressedAt };
   }
 
   cycle.lastPressAt = pressedAt;

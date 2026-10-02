@@ -23,7 +23,7 @@
         "default": "Alt+Y",
         "mac": "MacCtrl+Y"
       },
-      "description": "Switch to the most recently used tab (press repeatedly to go further back)"
+      "description": "Switch to the most recently used tab in this window (press repeatedly to go further back)"
     }
   }
 }
