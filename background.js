@@ -25,9 +25,17 @@
  *   chrome.developerPrivate.updateExtensionCommand({
  *     extensionId: ext.id,
  *     commandName: 'switch-to-previous-tab',
- *     keybinding: navigator.platform.startsWith('Mac') ? 'MacCtrl+Tab' : 'Ctrl+Tab',
- *   }, () => console.log(chrome.runtime.lastError?.message ?? 'Ctrl+Tab is now bound'));
+ *     keybinding: 'Ctrl+Tab',
+ *   }, () => chrome.developerPrivate.getExtensionInfo(ext.id, (info) => {
+ *     const cmd = info.commands.find((c) => c.name === 'switch-to-previous-tab');
+ *     console.log(`Shortcut is now: ${cmd.keybinding || 'NOT SET (it failed)'}`);
+ *   }));
  * });
+ *
+ * Use 'Ctrl+Tab' on every platform: in this API "Ctrl" already means the
+ * Control key on a Mac. ("MacCtrl" only exists in manifest.json; here it fails
+ * to parse.) Chrome clears the old shortcut before applying the new one and
+ * reports no error if the new one is rejected, so the snippet reads it back.
  *
  * To undo it, set a different shortcut on that page as usual.
  */
