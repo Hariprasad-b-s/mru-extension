@@ -15,27 +15,12 @@
  * manifest's suggested key is dropped because it clashes with Chrome's own
  * "next tab"), and the chrome://extensions/shortcuts page refuses Tab. The
  * page's own API does accept it, though, and the binding then overrides
- * Chrome's Ctrl+Tab and survives restarts. To set it:
- *   1. Open chrome://extensions/shortcuts
- *   2. Open DevTools (Ctrl+Shift+J, or Cmd+Opt+J on macOS)
- *   3. Paste this and press Enter (Chrome may ask you to type "allow pasting"):
+ * Chrome's Ctrl+Tab and survives restarts. scripts/set-ctrl-tab-shortcut.js
+ * sets it: open chrome://extensions/shortcuts, open DevTools (Ctrl+Shift+J,
+ * or Cmd+Option+J on macOS), and paste that whole file into the Console.
  *
- * chrome.developerPrivate.updateExtensionCommand({
- *   extensionId: 'olophmoglokjdojcacoihjcepmlhafag',
- *   commandName: 'switch-to-previous-tab',
- *   keybinding: 'Ctrl+Tab',
- * });
- *
- * The shortcut on that page then reads "Ctrl + Tab". Notes:
- *   - The ID is fixed by the "key" in manifest.json, so it's the same whatever
- *     folder the extension is loaded from. A copy installed before that key
- *     existed has a different, folder-based ID: remove it and Load unpacked
- *     again. (Chrome silently ignores an ID that isn't installed.)
- *   - Use 'Ctrl+Tab' on every platform: in this API "Ctrl" already means the
- *     Control key on a Mac. "MacCtrl" only exists in manifest.json; here it
- *     fails to parse, and Chrome clears the old shortcut without an error.
- *
- * To undo it, set a different shortcut on that page as usual.
+ * The extension's ID (olophmoglokjdojcacoihjcepmlhafag) is fixed by the "key"
+ * in manifest.json, so the script works whatever folder it's loaded from.
  */
 
 const COMMAND_SWITCH = 'switch-to-previous-tab';
