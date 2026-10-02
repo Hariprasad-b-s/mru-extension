@@ -5,6 +5,8 @@
   "description": "Jump to your most recently used tab with a keyboard shortcut. No overlays, no page access, no UI.",
   "minimum_chrome_version": "110",
 
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxcSmyaHVBiETMJEnOURJvm3SWnRk+6RJ3NTH1MCQ8wF0usEg2iUNZK+d+K2J3A8AUnx21GhwjdQTWM/ZQIp27/CDx9ltUDYOcAtpjz62tiT/zPv5ckACZL1nSdlgyL26jNQNjcdBwgRDZn3fqK8B5/nrEKyFgtXoH7VSACLEvON+eH9mZRI2mvqRxWNorJY9MDuUUb0wjuZl7/jeA1ZExE2KYuWnrTy9Q+/X3IKEQCU9roYS8XMBGNh5Pde4hi+lpUzIBL3kKNk4AKH0ItJ9rCzMxaeI122ly8KQfwHyY56PXaOa0I7YU6TAO/xL9P08z8veglHdHsEXkMitDsx7owIDAQAB",
+
   "background": {
     "service_worker": "background.js"
   },
