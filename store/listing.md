@@ -61,7 +61,31 @@ Open source: https://github.com/Hariprasad-b-s/mru-extension
 | Screenshot (1280×800) | `store/screenshot-1280x800.png` |
 | Small promo tile (440×280) | `store/promo-small-440x280.png` |
 
-**Homepage / support URL:** https://github.com/Hariprasad-b-s/mru-extension
+**Additional fields:**
+
+| Field | Value |
+| --- | --- |
+| Official URL | None (it needs a site verified in Google Search Console) |
+| Homepage URL | https://github.com/Hariprasad-b-s/mru-extension |
+| Support URL | https://github.com/Hariprasad-b-s/mru-extension/issues |
+| Mature content | Off |
+
+## Test instructions (Access section)
+
+Reviewers read this to know how to try the extension, since it has no UI of its own:
+
+```
+No account, login or setup is needed. The only UI is the toolbar icon's ON/OFF badge.
+
+1. In one window, open 5 tabs and click them in this order: tab 1, tab 3, tab 5.
+2. Press Alt+Y (Control+Y on macOS). It switches to tab 3, the tab used before the current one, not the next tab to the right.
+3. Wait a second and press it again: back to tab 5.
+4. Now press it twice quickly (less than a second apart): tab 3, then tab 1, going further back through recently used tabs.
+5. Open a second window with a few tabs and use the shortcut there: it only switches among the tabs of the window you are in.
+6. Click the toolbar icon: the badge changes from ON (green) to OFF (gray) and the shortcut stops switching. Click again to turn it back on.
+
+Optional: users can bind Ctrl+Tab instead of Alt+Y by following https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup. This isn't needed to test the extension.
+```
 
 ## Privacy tab
 
