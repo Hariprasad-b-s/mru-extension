@@ -2,8 +2,9 @@
  * Pure MRU Tab Switcher — background service worker.
  *
  * Tracks tabs in Most-Recently-Used order and switches to the previous tab
- * when the keyboard command fires. It never touches page content: no content
- * scripts, no DOM injection, no overlays.
+ * when the keyboard command fires; pressing it again within a second goes
+ * one tab further back (see CYCLE_PAUSE_MS). It never touches page content:
+ * no content scripts, no DOM injection, no overlays.
  *
  * MV3 service workers are shut down when idle, so the MRU stack is mirrored
  * to chrome.storage.session (in-memory, cleared on browser restart) and
@@ -140,8 +141,27 @@ async function toggleEnabled() {
 }
 
 // ---------------------------------------------------------------------------
-// Switching
+// Switching and cycling
 // ---------------------------------------------------------------------------
+
+/**
+ * Presses closer together than this keep walking back through the MRU list,
+ * like tapping Tab while holding Alt on Windows; a longer pause ends the
+ * cycle. A pause is the only signal available: noticing that Ctrl was
+ * released would need a script injected into every page.
+ */
+const CYCLE_PAUSE_MS = 1000;
+
+/**
+ * The cycle in progress, or null. Tabs merely passed through mid-cycle
+ * aren't "used", so the stack is left alone until the cycle ends.
+ *   order:       snapshot of the MRU stack taken at the first press
+ *   position:    index in `order` of the tab currently shown
+ *   visited:     tab IDs this cycle activated (their tab events are ignored)
+ *   lastPressAt: time of the latest press
+ */
+let cycle = null;
+let cycleTimer;
 
 /** Activates a tab and focuses its window, in case it lives in another one. */
 async function focusTab(tabId) {
@@ -149,23 +169,71 @@ async function focusTab(tabId) {
   await chrome.windows.update(tab.windowId, { focused: true });
 }
 
-async function switchToPreviousTab() {
-  // Index 1 is the previously used tab. If its ID has gone stale, drop it and
-  // fall through to the next candidate instead of doing nothing.
-  for (const tabId of mruStack.slice(1)) {
+/** Shows the next tab in the cycle order, skipping tabs that have closed. */
+async function stepCycle() {
+  const { order } = cycle;
+
+  // Wraps past the oldest tab back to where the cycle started.
+  for (let tries = 1; tries < order.length; tries++) {
+    cycle.position = (cycle.position + 1) % order.length;
+    const tabId = order[cycle.position];
+    cycle.visited.add(tabId);
     try {
       await focusTab(tabId);
-      // Record the switch directly: if the tab was already active in its own
-      // window, Chrome fires no onActivated, and onFocusChanged isn't
-      // guaranteed on every platform.
-      moveToFront(tabId);
-      await saveStack();
       return;
     } catch {
-      removeFromStack(tabId);
-      await saveStack();
+      removeFromStack(tabId); // stale ID; try the next one
     }
   }
+}
+
+/** Ends the cycle and records the tab it left on screen as most recently used. */
+async function finishCycle() {
+  if (!cycle) return;
+  const landedOn = cycle.order[cycle.position];
+  cycle = null;
+  clearTimeout(cycleTimer);
+
+  // Record the tab the cycle stopped on directly: if it was already active in
+  // its own window, Chrome fired no onActivated for it. If it has since closed
+  // or the user clicked another tab in its window, record what's shown instead.
+  const tab = await chrome.tabs.get(landedOn).catch(() => null);
+  if (tab?.active) {
+    moveToFront(landedOn);
+  } else {
+    const [shown] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (shown) moveToFront(shown.id);
+  }
+  await saveStack();
+}
+
+async function finishCycleIfPaused() {
+  if (cycle && Date.now() - cycle.lastPressAt >= CYCLE_PAUSE_MS) await finishCycle();
+}
+
+/** One press: the previous tab, or one tab further back if mid-cycle. */
+async function cycleRecentTabs(pressedAt) {
+  if (!cycle || pressedAt - cycle.lastPressAt >= CYCLE_PAUSE_MS) {
+    await finishCycle();
+    if (mruStack.length < 2) return;
+    cycle = { order: [...mruStack], position: 0, visited: new Set(), lastPressAt: pressedAt };
+  }
+
+  cycle.lastPressAt = pressedAt;
+  await stepCycle();
+
+  clearTimeout(cycleTimer);
+  cycleTimer = setTimeout(() => enqueue(finishCycleIfPaused), CYCLE_PAUSE_MS);
+}
+
+/** Records a tab the user switched to by any means other than cycling. */
+async function recordActivation(tabId) {
+  if (cycle) {
+    if (cycle.visited.has(tabId)) return; // a cycle step; recorded when it ends
+    await finishCycle(); // the user went somewhere else mid-cycle
+  }
+  moveToFront(tabId);
+  await saveStack();
 }
 
 /** Chrome's native Ctrl+Tab: the next tab to the right, wrapping around. */
@@ -186,9 +254,9 @@ async function isBoundToCtrlTab() {
   return /Tab|⇥/.test(shortcut);
 }
 
-async function onSwitchCommand() {
+async function onSwitchCommand(pressedAt) {
   if (await getIsEnabled()) {
-    await switchToPreviousTab();
+    await cycleRecentTabs(pressedAt);
   } else if (await isBoundToCtrlTab()) {
     // While OFF, the command still owns Ctrl+Tab, so doing nothing would leave
     // the key dead. Give it Chrome's default behavior back instead.
@@ -215,10 +283,7 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
-  enqueue(() => {
-    moveToFront(tabId);
-    return saveStack();
-  });
+  enqueue(() => recordActivation(tabId));
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -230,8 +295,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 // Chrome can swap a tab's ID (e.g. when a prerendered page is shown).
 chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
+  const swap = (id) => (id === removedTabId ? addedTabId : id);
   enqueue(() => {
-    mruStack = mruStack.map((id) => (id === removedTabId ? addedTabId : id));
+    mruStack = mruStack.map(swap);
+    if (cycle) cycle.order = cycle.order.map(swap);
     return saveStack();
   });
 });
@@ -243,9 +310,7 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
 
   enqueue(async () => {
     const [tab] = await chrome.tabs.query({ active: true, windowId });
-    if (!tab) return;
-    moveToFront(tab.id);
-    await saveStack();
+    if (tab) await recordActivation(tab.id);
   });
 });
 
@@ -254,5 +319,7 @@ chrome.action.onClicked.addListener(() => {
 });
 
 chrome.commands.onCommand.addListener((command) => {
-  if (command === COMMAND_SWITCH) enqueue(onSwitchCommand);
+  if (command !== COMMAND_SWITCH) return;
+  const pressedAt = Date.now(); // stamped on arrival; queued work can lag behind
+  enqueue(() => onSwitchCommand(pressedAt));
 });
