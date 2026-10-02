@@ -20,15 +20,18 @@
  *   2. Open DevTools (F12 / Cmd+Opt+J) and go to the Console tab
  *   3. Paste this and press Enter (Chrome may ask you to type "allow pasting"):
  *
- * chrome.developerPrivate.getExtensionsInfo({}, (exts) => {
- *   const ext = exts.find((e) => e.name === 'Pure MRU Tab Switcher');
+ * chrome.developerPrivate.getExtensionsInfo({ includeDisabled: true }, (all) => {
+ *   const copies = all.filter((e) => e.name === 'Pure MRU Tab Switcher');
+ *   if (copies.length > 1) console.warn(`${copies.length} copies installed: remove the extras on chrome://extensions, then run this again.`);
+ *   const ext = copies.find((e) => e.state === 'ENABLED');
+ *   if (!ext) return console.error('Pure MRU Tab Switcher is not installed, or is turned off.');
  *   chrome.developerPrivate.updateExtensionCommand({
  *     extensionId: ext.id,
  *     commandName: 'switch-to-previous-tab',
  *     keybinding: 'Ctrl+Tab',
  *   }, () => chrome.developerPrivate.getExtensionInfo(ext.id, (info) => {
  *     const cmd = info.commands.find((c) => c.name === 'switch-to-previous-tab');
- *     console.log(`Shortcut is now: ${cmd.keybinding || 'NOT SET (it failed)'}`);
+ *     console.log(`${info.prettifiedPath}: shortcut is now ${cmd.keybinding || 'NOT SET (it failed)'}`);
  *   }));
  * });
  *
@@ -36,6 +39,8 @@
  * Control key on a Mac. ("MacCtrl" only exists in manifest.json; here it fails
  * to parse.) Chrome clears the old shortcut before applying the new one and
  * reports no error if the new one is rejected, so the snippet reads it back.
+ * Re-downloading the extension into a new folder installs a second copy with
+ * a new ID, so the snippet also warns about duplicates and skips disabled ones.
  *
  * To undo it, set a different shortcut on that page as usual.
  */
