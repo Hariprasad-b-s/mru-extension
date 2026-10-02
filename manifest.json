@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Pure MRU Tab Switcher",
+  "version": "1.0.0",
+  "description": "Jump to your most recently used tab with a keyboard shortcut. No overlays, no page access, no UI.",
+  "minimum_chrome_version": "110",
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "permissions": ["storage"],
+
+  "action": {
+    "default_title": "Pure MRU Tab Switcher"
+  },
+
+  "commands": {
+    "switch-to-previous-tab": {
+      "suggested_key": {
+        "default": "Alt+Y",
+        "mac": "MacCtrl+Y"
+      },
+      "description": "Switch to the most recently used tab"
+    }
+  }
+}
