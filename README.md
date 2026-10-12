@@ -7,7 +7,7 @@
 It works in the background with nothing on screen: no overlays, no popups, no access to the pages you visit, and no data collected.
 
 - **One tap** goes to the tab you were on before this one.
-- **Quick repeated taps** (less than a second apart) go further back: 2nd most recent, 3rd, and so on, wrapping round to where you started. Tabs you only pass through don't count as "used".
+- **Quick repeated taps** (less than 0.7 seconds apart) go further back: 2nd most recent, 3rd, and so on, wrapping round to where you started. Tabs you only pass through don't count as "used".
 - **Stays in your window.** Switching only cycles through the tabs of the window you're working in.
 - **On/off with one click.** Click the toolbar icon to toggle it; the badge shows **ON** (green) or **OFF** (gray). While it's off and bound to Ctrl+Tab, Ctrl+Tab behaves like Chrome's normal "next tab".
 

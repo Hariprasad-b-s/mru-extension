@@ -32,7 +32,7 @@ Ctrl+Tab takes you to the tab you used last, not the next one to the right, the 
 
 HOW IT WORKS
 • One tap: back to the tab you were on before this one.
-• Quick repeated taps (less than a second apart): further back, to your 2nd, 3rd, 4th most recent tab, wrapping round to where you started. Tabs you only pass through don't count as used.
+• Quick repeated taps (less than 0.7 seconds apart): further back, to your 2nd, 3rd, 4th most recent tab, wrapping round to where you started. Tabs you only pass through don't count as used.
 • Stays in your window: it only cycles through the tabs of the window you're working in.
 • One click on the toolbar icon turns it on or off. The badge shows ON (green) or OFF (gray).
 
@@ -79,8 +79,8 @@ No account, login or setup is needed. The only UI is the toolbar icon's ON/OFF b
 
 1. In one window, open 5 tabs and click them in this order: tab 1, tab 3, tab 5.
 2. Press Alt+Y (Control+Y on macOS). It switches to tab 3, the tab used before the current one, not the next tab to the right.
-3. Wait a second and press it again: back to tab 5.
-4. Now press it twice quickly (less than a second apart): tab 3, then tab 1, going further back through recently used tabs.
+3. Wait a second and press it again: back to tab 5. (A pause of 0.7 seconds or more starts over.)
+4. Now press it twice quickly (less than 0.7 seconds apart): tab 3, then tab 1, going further back through recently used tabs.
 5. Open a second window with a few tabs and use the shortcut there: it only switches among the tabs of the window you are in.
 6. Click the toolbar icon: the badge changes from ON (green) to OFF (gray) and the shortcut stops switching. Click again to turn it back on.
 

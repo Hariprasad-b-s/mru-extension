@@ -3,7 +3,7 @@
  *
  * Tracks tabs in Most-Recently-Used order and, when the keyboard command
  * fires, switches to the previously used tab in the current window; pressing
- * it again within a second goes one tab further back (see CYCLE_PAUSE_MS).
+ * it again within 0.7 seconds goes one tab further back (see CYCLE_PAUSE_MS).
  * Switching never leaves the focused window. It never touches page content:
  * no content scripts, no DOM injection, no overlays.
  *
@@ -141,7 +141,7 @@ async function toggleEnabled() {
  * cycle. A pause is the only signal available: noticing that Ctrl was
  * released would need a script injected into every page.
  */
-const CYCLE_PAUSE_MS = 1000;
+const CYCLE_PAUSE_MS = 700;
 
 /**
  * The cycle in progress, or null. Tabs merely passed through mid-cycle
