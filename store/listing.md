@@ -28,27 +28,36 @@ Brave is another company's trademark. The Web Store's policies on impersonation,
 **Description** (paste as is):
 
 ```
-Ctrl+Tab takes you to the tab you used last, not the next one to the right, the way Brave and Firefox can. Tap it again quickly to go further back through your recent tabs.
+Switch tabs the way your brain works: Ctrl+Tab takes you back to the tab you were just using, not the next one to the right. It's the smooth, most-recently-used (MRU) tab switching that Brave and Firefox users love, now in Chrome.
 
-HOW IT WORKS
-• One tap: back to the tab you were on before this one.
-• Quick repeated taps (less than 0.7 seconds apart): further back, to your 2nd, 3rd, 4th most recent tab, wrapping round to where you started.
-• Ctrl+Shift+Tab goes the other way through the same list, so on its own it jumps to your least recently used tab.
-• Works like Brave: every tab you land on while cycling counts as recently used.
-• Stays in your window: it only cycles through the tabs of the window you're working in.
-• One click on the toolbar icon turns it on or off. The badge shows ON (green) or OFF (gray).
+Writing an email while checking a document? One tap flips between them, no hunting through the tab bar.
 
-SHORTCUT
-Out of the box the shortcuts are Alt+Y and Alt+Shift+Y for reverse (Control+Y and Control+Shift+Y on macOS). You can change them on chrome://extensions/shortcuts.
+✦ HOW IT WORKS
+• Tap once: jump to your previous tab. Tap again later: jump back. Perfect for flipping between two tabs.
+• Tap repeatedly (less than 0.7 seconds apart): keep going further back through your recent tabs, 2nd, 3rd, 4th most recent and so on. Pause and you stay where you landed.
+• Ctrl+Shift+Tab goes the other way through the same list. Pressed on its own, it jumps straight to the tab you've used least recently.
+• Brave-style history: every tab you land on while cycling counts as recently used, just like in Brave.
+• Stays in your window: with several windows open, it only cycles through the tabs of the window you're working in.
+• One click on the toolbar icon turns it on or off. The badge shows ON (green) or OFF (gray). While it's off, Ctrl+Tab and Ctrl+Shift+Tab work like Chrome's normal next/previous tab.
 
-Chrome doesn't let extensions claim Ctrl+Tab and Ctrl+Shift+Tab directly, but you can set them in a minute by pasting one snippet into DevTools on the shortcuts page. Step-by-step instructions: https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup
+✦ SHORTCUTS
+Out of the box: Alt+Y, and Alt+Shift+Y for reverse (Control+Y and Control+Shift+Y on macOS). You can change them any time at chrome://extensions/shortcuts.
 
-PRIVATE AND LIGHTWEIGHT
-• No overlays, popups or pages: it works entirely in the background.
-• No access to the pages you visit, no content scripts, no host permissions.
-• No network requests, no analytics, no data collected.
+Want Ctrl+Tab and Ctrl+Shift+Tab? Chrome doesn't let extensions take those keys by themselves, but you can set them in under a minute by pasting a short snippet into DevTools on the shortcuts page, the same method QuicKey users rely on. Step-by-step guide:
+https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup
 
-Open source: https://github.com/Hariprasad-b-s/mru-extension
+✦ PRIVATE BY DESIGN
+• Nothing on screen: no overlays, popups or pages. It works quietly in the background.
+• No access to the pages you visit: no content scripts and no host permissions.
+• No network requests, no analytics, no tracking. Nothing you do leaves your browser.
+• Only one permission (storage), used to remember the on/off setting and your recent-tab order.
+
+✦ GOOD TO KNOW
+• Chrome doesn't tell extensions when you release Ctrl, so a short pause (0.7 seconds) ends a cycle instead.
+• With Ctrl+Tab taken over, Chrome's own next/previous tab is still on Ctrl+PgDn / Ctrl+PgUp (Cmd+Option+→ / ← on macOS).
+
+Free and open source: https://github.com/Hariprasad-b-s/mru-extension
+Questions or ideas? https://github.com/Hariprasad-b-s/mru-extension/issues
 ```
 
 **Category:** Productivity → Tools (or Workflow & Planning)
