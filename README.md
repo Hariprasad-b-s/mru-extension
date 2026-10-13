@@ -17,7 +17,7 @@ It works in the background with nothing on screen: no overlays, no popups, no ac
 
 ### From the Chrome Web Store
 
-Coming soon.
+**[Install MRU Tab Switcher from the Chrome Web Store](https://chromewebstore.google.com/detail/ffkjkhogdepleegfoakgihhmcfekdnoa)**, then pin it from the puzzle-piece menu so you can see its ON/OFF badge.
 
 ### From source
 

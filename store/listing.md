@@ -17,7 +17,7 @@ Brave is another company's trademark. The Web Store's policies on impersonation,
 5. **Privacy tab:** fill it in from the answers below.
 6. **Distribution tab:** Free, Public, all regions.
 7. **Submit for review.** Reviews usually take from a few days to a couple of weeks. You'll get an email when it's published.
-8. **After it's live:** replace "Coming soon" in `README.md` with the store link.
+8. **After it's live:** link it from `README.md`. (Done: https://chromewebstore.google.com/detail/ffkjkhogdepleegfoakgihhmcfekdnoa)
 
 **Updating later:** raise `"version"` in `manifest.json` (e.g. `1.0.1`), run `./scripts/package.sh` again, upload the new zip on the item's **Package** tab, and submit for review.
 
