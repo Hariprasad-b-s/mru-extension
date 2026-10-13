@@ -2,15 +2,16 @@
 
 <img src="icons/icon-128.png" alt="" width="96" align="right">
 
-**Ctrl+Tab takes you to the tab you used last, not the next one to the right**, the way Brave and Firefox can. Tap it again quickly to go further back through your recent tabs.
+**Ctrl+Tab takes you to the tab you used last, not the next one to the right**, the way Brave does. Hold Ctrl and keep tapping Tab to go further back through your recent tabs; let go of Ctrl to stay there.
 
-It works in the background with nothing on screen: no overlays, no popups, no access to the pages you visit, and no data collected.
+It works in the background with nothing on screen: no overlays, no popups, and no data collected.
 
 - **One tap** goes to the tab you were on before this one.
-- **Quick repeated taps** (less than 0.7 seconds apart) go further back: 2nd most recent, 3rd, and so on, wrapping round to where you started.
+- **Hold Ctrl and tap Tab again** to go further back: 2nd most recent, 3rd, and so on, wrapping round to where you started. Take as long as you like; the cycle ends when you let go of Ctrl, or click the mouse, just like Brave.
 - **Ctrl+Shift+Tab goes the other way** through the same list, so on its own it jumps to the tab you've used least recently. You can mix both directions in one go.
 - **Works like Brave:** every tab you land on, even briefly while cycling, counts as recently used.
 - **Stays in your window.** Switching only cycles through the tabs of the window you're working in.
+- **Where extensions can't run** (the New Tab page, `chrome://` pages, the Chrome Web Store), Chrome doesn't let the extension see you let go of Ctrl, so there a pause of 0.7 seconds between taps ends the cycle instead.
 - **On/off with one click.** Click the toolbar icon to toggle it; the badge shows **ON** (green) or **OFF** (gray). While it's off, Ctrl+Tab and Ctrl+Shift+Tab behave like Chrome's normal "next tab" and "previous tab".
 
 ![What Ctrl+Tab does](store/screenshot-1280x800.png)
@@ -28,6 +29,8 @@ Coming soon.
 3. Open `chrome://extensions` and turn on **Developer mode** (top right).
 4. Click **Load unpacked** and pick the folder that contains `manifest.json`.
 5. Pin it from the puzzle-piece menu so you can see its ON/OFF badge.
+
+Chrome will say the extension can "read and change all your data on all websites". That's the broad wording Chrome uses for any extension with a script in web pages; this one's script only notices when you let go of Ctrl during a tab switch (see [Privacy](#privacy)).
 
 It works straight away with **Alt+Y** and **Alt+Shift+Y** (in reverse), or **Control+Y** and **Control+Shift+Y** on macOS. To use Ctrl+Tab and Ctrl+Shift+Tab instead, do the one-time setup below.
 
@@ -117,7 +120,9 @@ If you installed a copy before the extension had a fixed ID, remove it and use *
 
 ## Privacy
 
-The extension keeps the order you used your tabs in, as tab ID numbers in the browser's memory, and remembers whether it's switched on. It never reads page content, makes no network requests, and collects nothing. See [PRIVACY.md](PRIVACY.md).
+The extension keeps the order you used your tabs in, as tab ID numbers in the browser's memory, and remembers whether it's switched on.
+
+To end a cycle when you let go of Ctrl, as Brave does, a small listener ([`content.js`](content.js)) runs in each web page. It stays idle until you're switching tabs, then only watches for modifier keys being released or pressed and for mouse clicks, and tells the extension "stop cycling". It never reads or changes page content, and nothing it sees is stored or sent anywhere. The extension makes no network requests and collects nothing. See [PRIVACY.md](PRIVACY.md).
 
 ## Publishing
 
@@ -129,6 +134,7 @@ The extension keeps the order you used your tabs in, as tab ID numbers in the br
 | --- | --- |
 | `manifest.json` | Extension manifest (Manifest V3) |
 | `background.js` | Service worker: tab tracking, switching and the ON/OFF toggle |
+| `content.js` | Listener in each page that reports when Ctrl is let go during a tab switch |
 | `icons/` | Extension icons, plus `icon.svg`, the source they're rendered from |
 | `scripts/set-ctrl-tab-shortcut.js` | Ctrl+Tab setup code to paste into DevTools |
 | `scripts/package.sh` | Builds `dist/mru-tab-switcher-<version>.zip` for the Web Store |
