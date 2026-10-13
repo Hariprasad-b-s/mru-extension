@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MRU tab switcher - Smooth like brave browser",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Jump to your most recently used tab with a shortcut, and tap again to go further back. Works with Ctrl+Tab. No overlays.",
   "minimum_chrome_version": "110",
 
@@ -35,6 +35,13 @@
         "mac": "MacCtrl+Y"
       },
       "description": "Switch to the most recently used tab in this window (press repeatedly to go further back)"
+    },
+    "cycle-in-reverse": {
+      "suggested_key": {
+        "default": "Alt+Shift+Y",
+        "mac": "MacCtrl+Shift+Y"
+      },
+      "description": "Cycle through recent tabs in reverse, least recently used first"
     }
   }
 }

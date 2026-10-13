@@ -3,7 +3,9 @@
  *
  * Tracks tabs in Most-Recently-Used order and, when the keyboard command
  * fires, switches to the previously used tab in the current window; pressing
- * it again within 0.7 seconds goes one tab further back (see CYCLE_PAUSE_MS).
+ * it again within 0.7 seconds goes one tab further back (see CYCLE_PAUSE_MS),
+ * and the reverse command (Ctrl+Shift+Tab once set up) walks the same list the
+ * other way. As in Brave, every tab shown while cycling counts as used.
  * Switching never leaves the focused window. It never touches page content:
  * no content scripts, no DOM injection, no overlays.
  *
@@ -11,19 +13,20 @@
  * to chrome.storage.session (in-memory, cleared on browser restart) and
  * restored whenever the worker wakes up.
  *
- * USING CTRL+TAB (one-time setup)
- * Chrome won't let an extension ship Ctrl+Tab as its default shortcut (the
- * manifest's suggested key is dropped because it clashes with Chrome's own
- * "next tab"), and the chrome://extensions/shortcuts page refuses Tab. The
- * page's own API does accept it, though, and the binding then overrides
- * Chrome's Ctrl+Tab and survives restarts. scripts/set-ctrl-tab-shortcut.js
- * sets it: open chrome://extensions/shortcuts, open DevTools (Ctrl+Shift+J,
+ * USING CTRL+TAB AND CTRL+SHIFT+TAB (one-time setup)
+ * Chrome won't let an extension ship Tab shortcuts as defaults (the
+ * manifest's suggested keys are dropped because they clash with Chrome's own
+ * "next/previous tab"), and the chrome://extensions/shortcuts page refuses
+ * Tab. The page's own API does accept them, though, and the bindings then
+ * override Chrome's and survive restarts. scripts/set-ctrl-tab-shortcut.js
+ * sets both: open chrome://extensions/shortcuts, open DevTools (Ctrl+Shift+J,
  * or Cmd+Option+J on macOS), and paste that whole file into the Console. It
  * finds the extension by its command, so it works for a Chrome Web Store
  * install and an unpacked one alike, whatever their IDs.
  */
 
 const COMMAND_SWITCH = 'switch-to-previous-tab';
+const COMMAND_SWITCH_REVERSE = 'cycle-in-reverse';
 
 const STORAGE_KEYS = {
   isEnabled: 'isEnabled', // chrome.storage.local: persists across restarts
@@ -136,7 +139,7 @@ async function toggleEnabled() {
 // ---------------------------------------------------------------------------
 
 /**
- * Presses closer together than this keep walking back through the MRU list,
+ * Presses closer together than this keep walking through the MRU list,
  * like tapping Tab while holding Alt on Windows; a longer pause ends the
  * cycle. A pause is the only signal available: noticing that Ctrl was
  * released would need a script injected into every page.
@@ -144,11 +147,12 @@ async function toggleEnabled() {
 const CYCLE_PAUSE_MS = 700;
 
 /**
- * The cycle in progress, or null. Tabs merely passed through mid-cycle
- * aren't "used", so the stack is left alone until the cycle ends.
+ * The cycle in progress, or null. Like Brave, the order is fixed at the first
+ * press and later presses walk it in either direction, while every tab shown
+ * along the way is recorded as used.
  *   order:       the current window's tabs at the first press (see below)
  *   position:    index in `order` of the tab currently shown
- *   visited:     tab IDs this cycle activated (their tab events are ignored)
+ *   visited:     tab IDs this cycle activated (recorded by stepCycle itself)
  *   lastPressAt: time of the latest press
  */
 let cycle = null;
@@ -176,17 +180,22 @@ async function currentWindowOrder() {
   return [shown.id, ...used, ...neverUsed];
 }
 
-/** Shows the next tab in the cycle order, skipping tabs that have closed. */
-async function stepCycle() {
+/**
+ * Shows the tab one step along the cycle order (step 1: older, -1: newer),
+ * skipping tabs that have closed. Wraps around at either end.
+ */
+async function stepCycle(step) {
   const { order } = cycle;
 
-  // Wraps past the oldest tab back to where the cycle started.
   for (let tries = 1; tries < order.length; tries++) {
-    cycle.position = (cycle.position + 1) % order.length;
+    cycle.position = (cycle.position + step + order.length) % order.length;
     const tabId = order[cycle.position];
     cycle.visited.add(tabId);
     try {
       await chrome.tabs.update(tabId, { active: true });
+      // As in Brave, a tab shown while cycling counts as used.
+      moveToFront(tabId);
+      await saveStack();
       return;
     } catch {
       removeFromStack(tabId); // stale ID; try the next one
@@ -201,9 +210,9 @@ async function finishCycle() {
   cycle = null;
   clearTimeout(cycleTimer);
 
-  // Record the tab the cycle stopped on directly, since its onActivated was
-  // ignored as a cycle step. If it has since closed or the user clicked
-  // another tab in its window, record what's shown instead.
+  // Normally a no-op, as stepCycle already recorded the tab the cycle stopped
+  // on. If it has since closed or the user clicked another tab in its window,
+  // record what's shown instead.
   const tab = await chrome.tabs.get(landedOn).catch(() => null);
   if (tab?.active) {
     moveToFront(landedOn);
@@ -218,8 +227,12 @@ async function finishCycleIfPaused() {
   if (cycle && Date.now() - cycle.lastPressAt >= CYCLE_PAUSE_MS) await finishCycle();
 }
 
-/** One press: the previous tab, or one tab further back if mid-cycle. */
-async function cycleRecentTabs(pressedAt) {
+/**
+ * One press. Forward (step 1): the previous tab, or one further back if
+ * mid-cycle. Reverse (step -1): the other way, so from a standing start it
+ * jumps to the least recently used tab, as Ctrl+Shift+Tab does in Brave.
+ */
+async function cycleRecentTabs(pressedAt, step) {
   if (!cycle || pressedAt - cycle.lastPressAt >= CYCLE_PAUSE_MS) {
     await finishCycle();
     const order = await currentWindowOrder();
@@ -228,7 +241,7 @@ async function cycleRecentTabs(pressedAt) {
   }
 
   cycle.lastPressAt = pressedAt;
-  await stepCycle();
+  await stepCycle(step);
 
   clearTimeout(cycleTimer);
   cycleTimer = setTimeout(() => enqueue(finishCycleIfPaused), CYCLE_PAUSE_MS);
@@ -237,38 +250,43 @@ async function cycleRecentTabs(pressedAt) {
 /** Records a tab the user switched to by any means other than cycling. */
 async function recordActivation(tabId) {
   if (cycle) {
-    if (cycle.visited.has(tabId)) return; // a cycle step; recorded when it ends
+    if (cycle.visited.has(tabId)) return; // a cycle step; stepCycle recorded it
     await finishCycle(); // the user went somewhere else mid-cycle
   }
   moveToFront(tabId);
   await saveStack();
 }
 
-/** Chrome's native Ctrl+Tab: the next tab to the right, wrapping around. */
-async function switchToNextTabInWindow() {
+/**
+ * Chrome's native Ctrl+Tab (offset 1: the next tab to the right) and
+ * Ctrl+Shift+Tab (offset -1: the next tab to the left), wrapping around.
+ */
+async function switchToAdjacentTab(offset) {
   const tabs = await chrome.tabs.query({ lastFocusedWindow: true });
   tabs.sort((a, b) => a.index - b.index);
 
   const current = tabs.findIndex((tab) => tab.active);
   if (current === -1 || tabs.length < 2) return;
 
-  await chrome.tabs.update(tabs[(current + 1) % tabs.length].id, { active: true });
+  const next = (current + offset + tabs.length) % tabs.length;
+  await chrome.tabs.update(tabs[next].id, { active: true });
 }
 
-/** True when the command has been rebound to Ctrl+Tab (shown as "⌃⇥" on macOS). */
-async function isBoundToCtrlTab() {
+/** True when the command has been bound to a Tab shortcut ("⇥" on macOS). */
+async function isBoundToTabKey(command) {
   const commands = await chrome.commands.getAll();
-  const { shortcut = '' } = commands.find((c) => c.name === COMMAND_SWITCH) ?? {};
+  const { shortcut = '' } = commands.find((c) => c.name === command) ?? {};
   return /Tab|⇥/.test(shortcut);
 }
 
-async function onSwitchCommand(pressedAt) {
+async function onSwitchCommand(command, pressedAt) {
+  const step = command === COMMAND_SWITCH_REVERSE ? -1 : 1;
   if (await getIsEnabled()) {
-    await cycleRecentTabs(pressedAt);
-  } else if (await isBoundToCtrlTab()) {
-    // While OFF, the command still owns Ctrl+Tab, so doing nothing would leave
-    // the key dead. Give it Chrome's default behavior back instead.
-    await switchToNextTabInWindow();
+    await cycleRecentTabs(pressedAt, step);
+  } else if (await isBoundToTabKey(command)) {
+    // While OFF, the command still owns Ctrl+Tab / Ctrl+Shift+Tab, so doing
+    // nothing would leave the key dead. Give it Chrome's default back instead.
+    await switchToAdjacentTab(step);
   }
   // OFF with any other shortcut (e.g. Alt+Y): do nothing.
 }
@@ -327,7 +345,7 @@ chrome.action.onClicked.addListener(() => {
 });
 
 chrome.commands.onCommand.addListener((command) => {
-  if (command !== COMMAND_SWITCH) return;
+  if (command !== COMMAND_SWITCH && command !== COMMAND_SWITCH_REVERSE) return;
   const pressedAt = Date.now(); // stamped on arrival; queued work can lag behind
-  enqueue(() => onSwitchCommand(pressedAt));
+  enqueue(() => onSwitchCommand(command, pressedAt));
 });

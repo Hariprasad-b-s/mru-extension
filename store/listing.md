@@ -32,14 +32,16 @@ Ctrl+Tab takes you to the tab you used last, not the next one to the right, the 
 
 HOW IT WORKS
 • One tap: back to the tab you were on before this one.
-• Quick repeated taps (less than 0.7 seconds apart): further back, to your 2nd, 3rd, 4th most recent tab, wrapping round to where you started. Tabs you only pass through don't count as used.
+• Quick repeated taps (less than 0.7 seconds apart): further back, to your 2nd, 3rd, 4th most recent tab, wrapping round to where you started.
+• Ctrl+Shift+Tab goes the other way through the same list, so on its own it jumps to your least recently used tab.
+• Works like Brave: every tab you land on while cycling counts as recently used.
 • Stays in your window: it only cycles through the tabs of the window you're working in.
 • One click on the toolbar icon turns it on or off. The badge shows ON (green) or OFF (gray).
 
 SHORTCUT
-Out of the box the shortcut is Alt+Y (Control+Y on macOS). You can change it on chrome://extensions/shortcuts.
+Out of the box the shortcuts are Alt+Y and Alt+Shift+Y for reverse (Control+Y and Control+Shift+Y on macOS). You can change them on chrome://extensions/shortcuts.
 
-Chrome doesn't let extensions claim Ctrl+Tab directly, but you can set it in a minute by pasting one snippet into DevTools on the shortcuts page. Step-by-step instructions: https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup
+Chrome doesn't let extensions claim Ctrl+Tab and Ctrl+Shift+Tab directly, but you can set them in a minute by pasting one snippet into DevTools on the shortcuts page. Step-by-step instructions: https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup
 
 PRIVATE AND LIGHTWEIGHT
 • No overlays, popups or pages: it works entirely in the background.
@@ -82,9 +84,10 @@ No account, login or setup is needed. The only UI is the toolbar icon's ON/OFF b
 3. Wait a second and press it again: back to tab 5. (A pause of 0.7 seconds or more starts over.)
 4. Now press it twice quickly (less than 0.7 seconds apart): tab 3, then tab 1, going further back through recently used tabs.
 5. Open a second window with a few tabs and use the shortcut there: it only switches among the tabs of the window you are in.
-6. Click the toolbar icon: the badge changes from ON (green) to OFF (gray) and the shortcut stops switching. Click again to turn it back on.
+6. Press Alt+Shift+Y (Control+Shift+Y on macOS): it goes the other way through the same list, jumping to the least recently used tab in the window.
+7. Click the toolbar icon: the badge changes from ON (green) to OFF (gray) and the shortcuts stop switching. Click again to turn it back on.
 
-Optional: users can bind Ctrl+Tab instead of Alt+Y by following https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup. This isn't needed to test the extension.
+Optional: users can bind Ctrl+Tab and Ctrl+Shift+Tab instead of Alt+Y and Alt+Shift+Y by following https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup. This isn't needed to test the extension.
 ```
 
 ## Privacy tab
