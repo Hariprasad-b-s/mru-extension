@@ -88,21 +88,17 @@ Questions or ideas? https://github.com/Hariprasad-b-s/mru-extension/issues
 
 ## Test instructions (Access section)
 
-Reviewers read this to know how to try the extension, since it has no UI of its own:
+Reviewers read this to know how to try the extension. The field takes at most 500 characters; this is 438:
 
 ```
-No account, login or setup is needed. The only UI is the toolbar icon's ON/OFF badge.
-
-1. In one window, open 5 tabs and click them in this order: tab 1, tab 3, tab 5.
-2. Press Alt+Y (Control+Y on macOS). It switches to tab 3, the tab used before the current one, not the next tab to the right.
-3. Wait a second and press it again: back to tab 5. (A pause of 0.7 seconds or more starts over.)
-4. Now press it twice quickly (less than 0.7 seconds apart): tab 3, then tab 1, going further back through recently used tabs.
-5. Open a second window with a few tabs and use the shortcut there: it only switches among the tabs of the window you are in.
-6. Press Alt+Shift+Y (Control+Shift+Y on macOS): it goes the other way through the same list, jumping to the least recently used tab in the window.
-7. Click the toolbar icon: the badge changes from ON (green) to OFF (gray), the icon turns gray, and the shortcuts stop switching. Click again to turn it back on.
-8. Right-click the toolbar icon and choose Options: the settings page (also shown once after install) lets you change the pause length, turn Brave-style history on or off, and choose one window or all windows.
-
-Optional: users can bind Ctrl+Tab and Ctrl+Shift+Tab instead of Alt+Y and Alt+Shift+Y by following https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup. This isn't needed to test the extension.
+No login needed. Open 5 tabs; click tab 1, 3, then 5.
+1. Alt+Y (Mac: Control+Y): goes to tab 3, the last-used tab.
+2. Wait 1 s, Alt+Y: back to tab 5.
+3. Alt+Y twice quickly: tab 3, then tab 1.
+4. Alt+Shift+Y: reverse order (least recently used tab).
+5. Only switches within the current window.
+6. Click toolbar icon: badge ON/OFF, shortcuts stop when OFF.
+7. Right-click icon > Options: pause length, Brave-style history, one/all windows.
 ```
 
 ## Privacy tab
