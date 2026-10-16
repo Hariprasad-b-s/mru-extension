@@ -2,6 +2,7 @@ import { createRequire } from 'module';
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
+import { tmpdir } from 'os';
 // Paths: the repo (or EXT_DIR) and Playwright (or PLAYWRIGHT=/path/to/playwright).
 const REPO = process.env.EXT_DIR ?? fileURLToPath(new URL('..', import.meta.url)).replace(/\/$/, '');
 const PLAYWRIGHT = process.env.PLAYWRIGHT ?? 'playwright';
@@ -44,8 +45,8 @@ check('default pause shown as 0.70 s', ui.pause === '0.70 s', ui.pause);
 
 // Screenshots for a visual check (light, dark).
 await opts.setViewportSize({ width: 900, height: 1400 });
-await opts.emulateMedia({ colorScheme: 'light' }); await opts.screenshot({ path: 'options-light.png', fullPage: true });
-await opts.emulateMedia({ colorScheme: 'dark' }); await opts.screenshot({ path: 'options-dark.png', fullPage: true });
+await opts.emulateMedia({ colorScheme: 'light' }); await opts.screenshot({ path: `${tmpdir()}/mru-options-light.png`, fullPage: true });
+await opts.emulateMedia({ colorScheme: 'dark' }); await opts.screenshot({ path: `${tmpdir()}/mru-options-dark.png`, fullPage: true });
 await opts.emulateMedia({ colorScheme: 'light' });
 
 // 4. Changing settings on the page reaches the background.
