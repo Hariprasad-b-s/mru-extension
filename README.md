@@ -152,3 +152,5 @@ By default it has no access to web pages. Only if you turn on *End the cycle whe
 | `scripts/set-ctrl-tab-shortcut.js` | Ctrl+Tab setup code to paste into DevTools |
 | `scripts/package.sh` | Builds `dist/mru-tab-switcher-<version>.zip` for the Web Store |
 | `store/` | Web Store listing text and images |
+| `tests/` | Test suites against a real Chromium: run `./tests/run.sh` |
+| `CLAUDE.md` | Project notes for Claude Code sessions |
