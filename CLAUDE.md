@@ -7,6 +7,7 @@ Chrome extension (Manifest V3) that switches tabs in most-recently-used order, l
 - After every change: commit, push the working branch, then fast-forward `main` to it (`git push origin HEAD:main`). Always merge to main; don't ask.
 - Every package uploaded to the store needs a **higher** `"version"` in `manifest.json` than the last upload. Bump it with any user-facing change.
 - Keep `README.md`, `PRIVACY.md` and `store/listing.md` in step with the behaviour; the store listing's privacy-policy URL points at `PRIVACY.md` on `main`.
+- Updates must be smooth: every new feature is an opt-in setting, off by default. With it off, an updated install behaves exactly like the previous version, keeps its settings and shortcuts, and gets no new permission warning. `tests/update.mjs` checks this against the previous store version (`FROM_COMMIT`, default 1.1.0's `8e26dbb`); point it at the newest submitted version when one ships.
 - No overlays or UI injected into pages. No access to web pages by default: the "let go of Ctrl" listener is opt-in (optional host permission), so installs and updates show no permission warning.
 - Store field limits: manifest `description` ≤ 132 characters; store description ≤ 16,000; test instructions ≤ 500.
 
@@ -16,7 +17,7 @@ Chrome extension (Manifest V3) that switches tabs in most-recently-used order, l
 | --- | --- | --- |
 | 1.0.2 | `9965b31` | Live (1.0.1 code, re-uploaded as 1.0.2) |
 | 1.1.0 | `8e26dbb` | Submitted for review: settings/welcome page, reverse cycling, Brave-style history |
-| 1.2.0 | `78e4eda` | On `main`, not submitted: optional "end the cycle when I let go of Ctrl" |
+| 1.2.0 | latest `main` | Not submitted: 1.1.0 plus the optional "end the cycle when I let go of Ctrl" (off by default) |
 
 (Git tags can't be pushed from the cloud sandbox, hence the commit IDs.)
 

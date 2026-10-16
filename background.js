@@ -486,13 +486,16 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   enqueue(async () => {
     removeFromStack(tabId);
     await saveStack();
-    await finishCycle(); // as in Brave, closing a tab ends a cycle
+    // With "let go of Ctrl" on, closing a tab ends a cycle, as in Brave.
+    if (releaseDetection) await finishCycle();
   });
 });
 
-// As in Brave, opening a tab ends a cycle.
+// With "let go of Ctrl" on, opening a tab ends a cycle, as in Brave.
 chrome.tabs.onCreated.addListener(() => {
-  enqueue(finishCycle);
+  enqueue(async () => {
+    if (releaseDetection) await finishCycle();
+  });
 });
 
 // Chrome can swap a tab's ID (e.g. when a prerendered page is shown).
@@ -509,9 +512,12 @@ chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
 // already active), so record the newly focused window's active tab here.
 chrome.windows.onFocusChanged.addListener((windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
-    // Some systems report "no window" briefly while focus moves between our
-    // own windows, so check again shortly before ending a cycle.
-    setTimeout(() => enqueue(finishCycleIfChromeUnfocused), 200);
+    // With "let go of Ctrl" on, another app taking focus ends a cycle, as in
+    // Brave. Some systems report "no window" briefly while focus moves between
+    // our own windows, so check again shortly before ending it.
+    setTimeout(() => enqueue(async () => {
+      if (releaseDetection) await finishCycleIfChromeUnfocused();
+    }), 200);
     return;
   }
 

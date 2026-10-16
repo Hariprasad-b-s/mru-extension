@@ -44,6 +44,7 @@ run settings      headed node tests/settings.mjs
 run settings-zip  headed node tests/settings.mjs "$PKG_DIR"
 run release       headed node tests/release.mjs
 run release-zip   headed node tests/release.mjs "$PKG_DIR"
+run update        headed node tests/update.mjs
 run package       node tests/package.mjs
 
 [ "$failed" -eq 0 ] && echo "All suites passed (v$version)." || echo "Some suites failed (v$version)."
