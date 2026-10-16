@@ -28,25 +28,40 @@ Brave is another company's trademark. The Web Store's policies on impersonation,
 **Description** (paste as is):
 
 ```
-Ctrl+Tab takes you to the tab you used last, not the next one to the right, the way Brave and Firefox can. Tap it again quickly to go further back through your recent tabs.
+Switch tabs the way your brain works: Ctrl+Tab takes you back to the tab you were just using, not the next one to the right. It's the smooth, most-recently-used (MRU) tab switching that Brave and Firefox users love, now in Chrome.
 
-HOW IT WORKS
-• One tap: back to the tab you were on before this one.
-• Quick repeated taps (less than 0.7 seconds apart): further back, to your 2nd, 3rd, 4th most recent tab, wrapping round to where you started. Tabs you only pass through don't count as used.
-• Stays in your window: it only cycles through the tabs of the window you're working in.
-• One click on the toolbar icon turns it on or off. The badge shows ON (green) or OFF (gray).
+Writing an email while checking a document? One tap flips between them, no hunting through the tab bar.
 
-SHORTCUT
-Out of the box the shortcut is Alt+Y (Control+Y on macOS). You can change it on chrome://extensions/shortcuts.
+✦ HOW IT WORKS
+• Tap once: jump to your previous tab. Tap again later: jump back. Perfect for flipping between two tabs.
+• Tap repeatedly: keep going further back through your recent tabs, 2nd, 3rd, 4th most recent and so on. Pause and you stay where you landed.
+• Ctrl+Shift+Tab goes the other way through the same list. Pressed on its own, it jumps straight to the tab you've used least recently.
+• Brave-style history: every tab you land on while cycling counts as recently used, just like in Brave.
+• Stays in your window, or cycles through all windows if you prefer.
+• One click on the toolbar icon turns it on or off. The badge shows ON or OFF and the icon goes gray when it's off. While it's off, Ctrl+Tab and Ctrl+Shift+Tab work like Chrome's normal next/previous tab.
 
-Chrome doesn't let extensions claim Ctrl+Tab directly, but you can set it in a minute by pasting one snippet into DevTools on the shortcuts page. Step-by-step instructions: https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup
+✦ MAKE IT YOURS
+A simple settings page (right-click the toolbar icon → Options) lets you:
+• set the pause that ends a cycle, from 0.3 to 1.5 seconds, to match how fast you tap;
+• turn Brave-style history on or off;
+• choose between cycling the current window or all windows.
 
-PRIVATE AND LIGHTWEIGHT
-• No overlays, popups or pages: it works entirely in the background.
-• No access to the pages you visit, no content scripts, no host permissions.
-• No network requests, no analytics, no data collected.
+✦ SHORTCUTS
+Out of the box: Alt+Y, and Alt+Shift+Y for reverse (Control+Y and Control+Shift+Y on macOS). You can change them any time at chrome://extensions/shortcuts.
 
-Open source: https://github.com/Hariprasad-b-s/mru-extension
+Want Ctrl+Tab and Ctrl+Shift+Tab? Chrome doesn't let extensions take those keys by themselves, but the welcome page walks you through it in under a minute: copy the setup code with one click and paste it on Chrome's shortcuts page, the same method QuicKey users rely on. You can reopen it any time from the toolbar icon's right-click menu (Set up Ctrl+Tab).
+
+✦ PRIVATE BY DESIGN
+• Nothing on screen while you work: no overlays or popups. It works quietly in the background.
+• No access to the pages you visit: no content scripts and no host permissions.
+• No network requests, no analytics, no tracking. Your settings and recent-tab order stay on your device.
+
+✦ GOOD TO KNOW
+• Chrome doesn't tell extensions when you release Ctrl, so a short pause ends a cycle instead. You choose how long in the settings.
+• With Ctrl+Tab taken over, Chrome's own next/previous tab is still on Ctrl+PgDn / Ctrl+PgUp (Cmd+Option+→ / ← on macOS).
+
+Free and open source: https://github.com/Hariprasad-b-s/mru-extension
+Questions or ideas? https://github.com/Hariprasad-b-s/mru-extension/issues
 ```
 
 **Category:** Productivity → Tools (or Workflow & Planning)
@@ -59,6 +74,7 @@ Open source: https://github.com/Hariprasad-b-s/mru-extension
 | --- | --- |
 | Store icon (128×128) | `icons/icon-128.png` |
 | Screenshot (1280×800) | `store/screenshot-1280x800.png` |
+| Second screenshot (1280×800) | `store/screenshot-settings-1280x800.png` |
 | Small promo tile (440×280) | `store/promo-small-440x280.png` |
 
 **Additional fields:**
@@ -82,9 +98,11 @@ No account, login or setup is needed. The only UI is the toolbar icon's ON/OFF b
 3. Wait a second and press it again: back to tab 5. (A pause of 0.7 seconds or more starts over.)
 4. Now press it twice quickly (less than 0.7 seconds apart): tab 3, then tab 1, going further back through recently used tabs.
 5. Open a second window with a few tabs and use the shortcut there: it only switches among the tabs of the window you are in.
-6. Click the toolbar icon: the badge changes from ON (green) to OFF (gray) and the shortcut stops switching. Click again to turn it back on.
+6. Press Alt+Shift+Y (Control+Shift+Y on macOS): it goes the other way through the same list, jumping to the least recently used tab in the window.
+7. Click the toolbar icon: the badge changes from ON (green) to OFF (gray), the icon turns gray, and the shortcuts stop switching. Click again to turn it back on.
+8. Right-click the toolbar icon and choose Options: the settings page (also shown once after install) lets you change the pause length, turn Brave-style history on or off, and choose one window or all windows.
 
-Optional: users can bind Ctrl+Tab instead of Alt+Y by following https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup. This isn't needed to test the extension.
+Optional: users can bind Ctrl+Tab and Ctrl+Shift+Tab instead of Alt+Y and Alt+Shift+Y by following https://github.com/Hariprasad-b-s/mru-extension#use-ctrltab-one-time-setup. This isn't needed to test the extension.
 ```
 
 ## Privacy tab
@@ -98,7 +116,13 @@ Switch between browser tabs in most-recently-used order with a keyboard shortcut
 **Permission justification, `storage`:**
 
 ```
-Saves whether the extension is switched on, and the order the user recently used their tabs in (as numeric tab IDs only), so both survive the background service worker being restarted. Nothing is sent anywhere.
+Saves whether the extension is switched on, the user's settings (pause length, Brave-style history, one window or all), and the order the user recently used their tabs in (as numeric tab IDs only), so they survive the background service worker being restarted. Nothing is sent anywhere.
+```
+
+**Permission justification, `contextMenus`:**
+
+```
+Adds three items to the extension's own toolbar icon menu: "Change keyboard shortcuts" (opens chrome://extensions/shortcuts), "Set up Ctrl+Tab" (opens the extension's settings page) and "Help" (opens the project's README). No menus are added to web pages.
 ```
 
 **Host permissions:** none requested.

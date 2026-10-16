@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MRU Tab Switcher</title>
+  <link rel="icon" href="icons/icon-32.png">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #4b5563;
+      --border: #e5e7eb;
+      --accent: #4338ca;
+      --accent-soft: #eef2ff;
+      --ok: #15803d;
+      --code-bg: #f3f4f6;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111318;
+        --card: #1b1e25;
+        --text: #f3f4f6;
+        --muted: #a1a7b3;
+        --border: #2c313b;
+        --accent: #a5b4fc;
+        --accent-soft: #23264a;
+        --ok: #4ade80;
+        --code-bg: #12141a;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+    header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+    header img { width: 56px; height: 56px; }
+    header h1 { margin: 0; font-size: 24px; }
+    header p { margin: 2px 0 0; color: var(--muted); }
+    .power { margin-left: auto; display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+    .welcome {
+      display: none;
+      background: var(--accent-soft);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+    }
+    body.is-welcome .welcome { display: block; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin-bottom: 16px;
+    }
+    h2 { margin: 0 0 10px; font-size: 17px; }
+    ul, ol { margin: 0; padding-left: 20px; }
+    li + li { margin-top: 4px; }
+    kbd {
+      font: 600 12.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      padding: 2px 6px;
+      background: var(--code-bg);
+      white-space: nowrap;
+    }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+    td { padding: 8px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+    td:last-child { text-align: right; white-space: nowrap; }
+    tr:last-child td { border-bottom: 0; }
+    .muted { color: var(--muted); }
+    .status { font-weight: 600; }
+    .status.ok { color: var(--ok); }
+    button {
+      font: inherit;
+      font-weight: 600;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: var(--card);
+      border-radius: 8px;
+      padding: 7px 14px;
+      cursor: pointer;
+    }
+    button.secondary { background: transparent; color: var(--accent); }
+    .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 220px;
+      overflow: auto;
+      font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+      margin: 12px 0 0;
+    }
+    .setting { padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .setting:last-child { border-bottom: 0; padding-bottom: 0; }
+    .setting:first-of-type { padding-top: 4px; }
+    .setting label { font-weight: 600; }
+    .setting p { margin: 4px 0 0; color: var(--muted); }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    input[type="range"] { flex: 1; min-width: 180px; accent-color: var(--accent); }
+    input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); width: 16px; height: 16px; }
+    .choice { display: flex; gap: 8px; align-items: baseline; margin-top: 6px; font-weight: 400 !important; }
+    output { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 4.5em; }
+    footer { color: var(--muted); font-size: 13.5px; padding: 0 4px; }
+    a { color: var(--accent); }
+    .saved { color: var(--ok); font-weight: 600; opacity: 0; transition: opacity .2s; }
+    .saved.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="icons/icon-128.png" alt="">
+      <div>
+        <h1>MRU Tab Switcher</h1>
+        <p>Switch to the tab you used last, not the next one to the right.</p>
+      </div>
+      <label class="power"><input type="checkbox" id="enabled"> <span id="enabled-label">On</span></label>
+    </header>
+
+    <div class="welcome">
+      <strong>Thanks for installing!</strong> It works right away with the shortcut below. Pin it from the
+      puzzle-piece menu to see its ON/OFF badge; clicking the icon turns it on or off.
+    </div>
+
+    <section>
+      <h2>How it works</h2>
+      <ul>
+        <li>Press <kbd data-shortcut="switch-to-previous-tab">Alt+Y</kbd> once to go to your previous tab, and again later to come back.</li>
+        <li>Press it again before you pause to keep going back: 2nd, 3rd, 4th most recent tab, and so on.</li>
+        <li><kbd data-shortcut="cycle-in-reverse">Alt+Shift+Y</kbd> goes the other way through the same list; on its own it jumps to the tab you used least recently.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Shortcuts</h2>
+      <table>
+        <tr><td>Previous tab, and further back</td><td><kbd data-shortcut="switch-to-previous-tab">Alt+Y</kbd></td></tr>
+        <tr><td>Same list, in reverse</td><td><kbd data-shortcut="cycle-in-reverse">Alt+Shift+Y</kbd></td></tr>
+      </table>
+      <div class="buttons"><button class="secondary" id="open-shortcuts">Change shortcuts</button></div>
+    </section>
+
+    <section id="ctrl-tab">
+      <h2>Use Ctrl+Tab and Ctrl+Shift+Tab</h2>
+      <p id="ctrl-tab-status" class="status"></p>
+      <p class="muted">Chrome doesn't let extensions take Tab shortcuts, and its shortcuts page won't accept the Tab key,
+        but you can set them once in under a minute:</p>
+      <ol>
+        <li>Click <strong>Copy setup code</strong>.</li>
+        <li>Click <strong>Open shortcuts page</strong>, then open DevTools there:
+          <kbd>Ctrl+Shift+J</kbd> (Windows/Linux) or <kbd>Cmd+Option+J</kbd> (macOS).</li>
+        <li>Paste into the Console and press <kbd>Enter</kbd>. If Chrome asks, type <code>allow pasting</code> first, then paste again.</li>
+      </ol>
+      <div class="buttons">
+        <button id="copy-code">Copy setup code</button>
+        <button class="secondary" id="open-shortcuts-2">Open shortcuts page</button>
+      </div>
+      <pre id="setup-code">Loading…</pre>
+    </section>
+
+    <section>
+      <h2>Settings <span class="saved" id="saved">Saved</span></h2>
+
+      <div class="setting">
+        <label for="pause">Pause that ends a cycle</label>
+        <div class="row">
+          <input type="range" id="pause" min="300" max="1500" step="50">
+          <output id="pause-value" for="pause"></output>
+        </div>
+        <p>Presses closer together than this keep going further back. Lower it if you tap quickly; raise it if you like to look at each tab.</p>
+      </div>
+
+      <div class="setting">
+        <label class="choice"><input type="checkbox" id="brave-history"> Brave-style history</label>
+        <p>Every tab you land on while cycling counts as recently used, as in Brave. Turn off to count only the tab you stop on.</p>
+      </div>
+
+      <div class="setting">
+        <label>Which tabs to cycle through</label>
+        <label class="choice"><input type="radio" name="scope" value="window"> Only the window I'm in</label>
+        <label class="choice"><input type="radio" name="scope" value="all"> All windows</label>
+      </div>
+    </section>
+
+    <footer>
+      No overlays, no page access, no data collected; settings stay on your device.
+      <a href="https://github.com/Hariprasad-b-s/mru-extension#readme" target="_blank" rel="noopener">Help</a> ·
+      <a href="https://github.com/Hariprasad-b-s/mru-extension/blob/main/PRIVACY.md" target="_blank" rel="noopener">Privacy</a>
+    </footer>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>
