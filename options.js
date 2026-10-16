@@ -6,8 +6,9 @@
  * chrome.storage.local.
  */
 
-// Keep in sync with DEFAULT_SETTINGS in background.js.
+// Keep in sync with DEFAULT_SETTINGS and RELEASE_ACCESS in background.js.
 const DEFAULT_SETTINGS = { pauseMs: 700, braveHistory: true, scope: 'window' };
+const RELEASE_ACCESS = { origins: ['<all_urls>'] };
 
 const $ = (id) => document.getElementById(id);
 
@@ -50,6 +51,32 @@ async function copySetupCode() {
   const button = $('copy-code');
   button.textContent = 'Copied ✓';
   setTimeout(() => { button.textContent = 'Copy setup code'; }, 2000);
+}
+
+// ---------------------------------------------------------------------------
+// Optional release detection: site access for content.js
+// ---------------------------------------------------------------------------
+
+async function renderReleaseDetection(message) {
+  const on = await chrome.permissions.contains(RELEASE_ACCESS);
+  $('release-detection').checked = on;
+  const status = $('release-status');
+  status.textContent = message ?? (on ? '✓ On: letting go of Ctrl ends the cycle.' : '');
+  status.className = on ? 'status ok' : 'status';
+}
+
+function onReleaseDetectionChange(event) {
+  // permissions.request only works straight from the click, before any await.
+  const turningOn = event.target.checked;
+  const change = turningOn
+    ? chrome.permissions.request(RELEASE_ACCESS)
+    : chrome.permissions.remove(RELEASE_ACCESS);
+  change
+    .then((done) => {
+      if (turningOn && !done) return renderReleaseDetection('Site access not allowed, so the pause is used.');
+      return renderReleaseDetection(turningOn ? '✓ On: letting go of Ctrl ends the cycle, in tabs already open too.' : 'Off: the pause ends the cycle.');
+    })
+    .catch((error) => renderReleaseDetection(`Couldn't change site access: ${error.message}`));
 }
 
 // ---------------------------------------------------------------------------
@@ -102,6 +129,11 @@ async function init() {
     if (area === 'local' && changes.isEnabled) renderEnabled(changes.isEnabled.newValue !== false);
   });
 
+  $('release-detection').addEventListener('change', onReleaseDetectionChange);
+  // Site access can also be changed from the extension's details in Chrome.
+  chrome.permissions.onAdded.addListener(() => renderReleaseDetection());
+  chrome.permissions.onRemoved.addListener(() => renderReleaseDetection());
+
   $('open-shortcuts').addEventListener('click', openShortcutsPage);
   $('open-shortcuts-2').addEventListener('click', openShortcutsPage);
   $('copy-code').addEventListener('click', copySetupCode);
@@ -110,7 +142,7 @@ async function init() {
   addEventListener('focus', renderShortcuts);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) renderShortcuts(); });
 
-  await Promise.all([renderShortcuts(), loadSetupCode()]);
+  await Promise.all([renderShortcuts(), loadSetupCode(), renderReleaseDetection()]);
   if (location.hash === '#ctrl-tab') $('ctrl-tab').scrollIntoView();
 }
 

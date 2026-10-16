@@ -10,6 +10,7 @@ It works in the background with nothing on screen: no overlays, no popups, no ac
 - **Quick repeated taps** (closer together than the pause you set, 0.7 seconds by default) go further back: 2nd most recent, 3rd, and so on, wrapping round to where you started.
 - **Ctrl+Shift+Tab goes the other way** through the same list, so on its own it jumps to the tab you've used least recently. You can mix both directions in one go.
 - **Works like Brave:** every tab you land on, even briefly while cycling, counts as recently used.
+- **Optional: let go of Ctrl to stop, exactly like Brave.** Turn on *End the cycle when I let go of Ctrl* in Settings and you can hold Ctrl as long as you like; letting go ends the cycle. It's off by default because it needs site access (see Privacy).
 - **Stays in your window**, or covers all windows if you prefer (see Settings).
 - **On/off with one click.** Click the toolbar icon to toggle it; the badge shows **ON** (green) or **OFF**, and the icon goes gray when it's off. While it's off, Ctrl+Tab and Ctrl+Shift+Tab behave like Chrome's normal "next tab" and "previous tab".
 
@@ -37,6 +38,7 @@ Right-click the toolbar icon and choose **Options** (or open the extension's det
 
 - **Pause that ends a cycle:** from 0.3 to 1.5 seconds (0.7 by default). Presses closer together than this keep going further back.
 - **Brave-style history** (on by default): every tab you land on while cycling counts as recently used. Turn it off to count only the tab you stop on.
+- **End the cycle when I let go of Ctrl** (off by default): Brave's exact behaviour. Chrome asks you to allow site access ("Read and change all your data on all websites") when you turn it on, because a tiny listener has to run in pages to notice the key being released. Untick it to give the access back. On pages where extensions can't run (the New Tab page, `chrome://` pages, the Chrome Web Store) the pause is used instead.
 - **Which tabs to cycle through:** only the window you're in (default), or all windows; with all windows, switching to a tab in another window brings that window to the front.
 - An **On/Off** switch, the current shortcuts, and the Ctrl+Tab setup below with a **Copy setup code** button.
 
@@ -130,7 +132,9 @@ If you installed a copy before the extension had a fixed ID, remove it and use *
 
 ## Privacy
 
-The extension keeps the order you used your tabs in, as tab ID numbers in the browser's memory, and remembers whether it's switched on and your settings. It never reads page content, makes no network requests, and collects nothing. See [PRIVACY.md](PRIVACY.md).
+The extension keeps the order you used your tabs in, as tab ID numbers in the browser's memory, and remembers whether it's switched on and your settings. It never reads page content, makes no network requests, and collects nothing.
+
+By default it has no access to web pages. Only if you turn on *End the cycle when I let go of Ctrl* does it ask for site access and run [`content.js`](content.js) in pages: a listener that stays idle until you switch tabs, then only notices Ctrl being released or pressed and mouse clicks, and tells the extension "stop cycling". It never reads or changes page content. See [PRIVACY.md](PRIVACY.md).
 
 ## Publishing
 
@@ -143,6 +147,7 @@ The extension keeps the order you used your tabs in, as tab ID numbers in the br
 | `manifest.json` | Extension manifest (Manifest V3) |
 | `background.js` | Service worker: tab tracking, switching, the ON/OFF toggle and the toolbar menu |
 | `options.html`, `options.js` | Settings and welcome page |
+| `content.js` | Optional listener that reports when Ctrl is let go (only with site access) |
 | `icons/` | Extension icons (`icon-off-*` for the OFF state), plus `icon.svg`, the source they're rendered from |
 | `scripts/set-ctrl-tab-shortcut.js` | Ctrl+Tab setup code to paste into DevTools |
 | `scripts/package.sh` | Builds `dist/mru-tab-switcher-<version>.zip` for the Web Store |

@@ -18,7 +18,7 @@ trap 'rm -rf "$staging"' EXIT
 # Only what the extension needs at runtime. The "key" field only pins the ID
 # of unpacked development copies; the Web Store assigns the published ID.
 grep -v '^  "key": ' manifest.json > "$staging/manifest.json"
-cp background.js options.html options.js "$staging/"
+cp background.js content.js options.html options.js "$staging/"
 mkdir "$staging/scripts"
 cp scripts/set-ctrl-tab-shortcut.js "$staging/scripts/"
 mkdir "$staging/icons"

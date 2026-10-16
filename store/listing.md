@@ -44,6 +44,7 @@ Writing an email while checking a document? One tap flips between them, no hunti
 A simple settings page (right-click the toolbar icon → Options) lets you:
 • set the pause that ends a cycle, from 0.3 to 1.5 seconds, to match how fast you tap;
 • turn Brave-style history on or off;
+• optionally end the cycle the moment you let go of Ctrl, exactly like Brave (off by default; Chrome asks for site access when you turn it on);
 • choose between cycling the current window or all windows.
 
 ✦ SHORTCUTS
@@ -53,11 +54,11 @@ Want Ctrl+Tab and Ctrl+Shift+Tab? Chrome doesn't let extensions take those keys 
 
 ✦ PRIVATE BY DESIGN
 • Nothing on screen while you work: no overlays or popups. It works quietly in the background.
-• No access to the pages you visit: no content scripts and no host permissions.
+• No access to the pages you visit by default. Only if you turn on "let go of Ctrl" does a tiny listener run in pages, and it only notices Ctrl being released while you switch tabs; it never reads or changes page content.
 • No network requests, no analytics, no tracking. Your settings and recent-tab order stay on your device.
 
 ✦ GOOD TO KNOW
-• Chrome doesn't tell extensions when you release Ctrl, so a short pause ends a cycle instead. You choose how long in the settings.
+• Chrome doesn't tell extensions when you release Ctrl, so by default a short pause ends a cycle (you choose how long). Turn on "End the cycle when I let go of Ctrl" for Brave's exact feel.
 • With Ctrl+Tab taken over, Chrome's own next/previous tab is still on Ctrl+PgDn / Ctrl+PgUp (Cmd+Option+→ / ← on macOS).
 
 Free and open source: https://github.com/Hariprasad-b-s/mru-extension
@@ -121,7 +122,17 @@ Saves whether the extension is switched on, the user's settings (pause length, B
 Adds three items to the extension's own toolbar icon menu: "Change keyboard shortcuts" (opens chrome://extensions/shortcuts), "Set up Ctrl+Tab" (opens the extension's settings page) and "Help" (opens the project's README). No menus are added to web pages.
 ```
 
-**Host permissions:** none requested.
+**Host permission justification** (`<all_urls>`, optional, requested only when the user turns on the setting):
+
+```
+Optional and off by default. Only when the user turns on "End the cycle when I let go of Ctrl" in the settings does the extension request access to all sites, to run content.js in pages. It detects when the user lets go of the shortcut's modifier key (Ctrl/Alt/Cmd), presses it again, or clicks, while a tab-switching cycle is in progress; that ends the cycle exactly like Ctrl+Tab in the Brave browser, and Chrome gives extensions no other way to know when a key is released. The script is idle outside a cycle, never reads or modifies page content, and sends only a "stop cycling" message to the extension's own service worker. Nothing is stored or sent off the device. Turning the setting off removes the access.
+```
+
+**Permission justification, `scripting`:**
+
+```
+Used only for the optional "End the cycle when I let go of Ctrl" setting: to register content.js once the user grants site access, unregister it when they withdraw it, and add it to tabs already open at that moment so they work without being reloaded.
+```
 
 **Remote code:** No, I am not using remote code.
 

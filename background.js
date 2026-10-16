@@ -7,8 +7,10 @@
  * (Ctrl+Shift+Tab once set up) walks the same list the other way. Settings
  * (options.html) choose the pause, whether tabs passed through count as used
  * (as in Brave), and whether cycling stays in the focused window or spans all
- * windows. It never touches page content: no content scripts, no DOM
- * injection, no overlays.
+ * windows. Optionally (a setting that asks the user for site access),
+ * content.js reports when Ctrl is released, so a cycle lasts while Ctrl is
+ * held and ends on release, as in Brave. It never changes page content and
+ * shows no overlays.
  *
  * MV3 service workers are shut down when idle, so the MRU stack is mirrored
  * to chrome.storage.session (in-memory, cleared on browser restart) and
@@ -48,6 +50,10 @@ const BADGE = {
 };
 
 const HELP_URL = 'https://github.com/Hariprasad-b-s/mru-extension#readme';
+
+/** Optional site access for content.js, requested from options.html. */
+const RELEASE_ACCESS = { origins: ['<all_urls>'] };
+const RELEASE_SCRIPT_ID = 'release-watcher';
 
 const MENU = {
   shortcuts: 'open-shortcuts',
@@ -169,18 +175,25 @@ async function toggleEnabled() {
 
 /**
  * The cycle in progress, or null. The order is fixed at the first press and
- * later presses walk it in either direction. Presses closer together than
- * settings.pauseMs keep cycling; a longer pause ends the cycle (a pause is the
- * only signal available: noticing that Ctrl was released would need a script
- * injected into every page).
- *   order:       the tabs to cycle through, fixed at the first press (see below)
- *   position:    index in `order` of the tab currently shown
- *   windowId:    the window of the tab currently shown
- *   visited:     tab IDs this cycle activated (their tab events are ignored)
- *   lastPressAt: time of the latest press
+ * later presses walk it in either direction. With release detection on and a
+ * page that can report it (content.js), the cycle lasts until Ctrl is
+ * released, as in Brave. Otherwise presses closer together than
+ * settings.pauseMs keep cycling and a longer pause ends it.
+ *   id:           distinguishes this cycle from earlier ones (see content.js)
+ *   order:        the tabs to cycle through, fixed at the first press (see below)
+ *   position:     index in `order` of the tab currently shown
+ *   windowId:     the window of the tab currently shown
+ *   visited:      tab IDs this cycle activated (their tab events are ignored)
+ *   watched:      tabs asked to report the release
+ *   lastPressAt:  time of the latest press
+ *   releaseAware: whether the tab on screen will report the release
  */
 let cycle = null;
 let cycleTimer;
+let cycleCount = 0;
+
+/** Whether the user granted site access for release detection. */
+let releaseDetection = false;
 
 /**
  * The tabs to cycle through, starting with the one on screen and then most
@@ -229,19 +242,40 @@ async function stepCycle(step) {
         moveToFront(tabId);
         await saveStack();
       }
-      return;
+      return tabId;
     } catch {
       removeFromStack(tabId); // stale ID; try the next one
     }
   }
 }
 
+/**
+ * Asks the page in a tab to report when Ctrl is released (content.js).
+ * Resolves true if release detection is on and that page has keyboard focus,
+ * so the release will reach it; false where no page script runs (chrome://
+ * pages, the New Tab page, the Web Store) or focus is elsewhere, such as the
+ * address bar.
+ */
+async function watchForRelease(tabId) {
+  if (!releaseDetection) return false;
+  const { id } = cycle;
+  cycle.watched.add(tabId);
+  const reply = await chrome.tabs
+    .sendMessage(tabId, { type: 'cycle-watch', cycleId: id })
+    .catch(() => null);
+  return reply?.focused === true;
+}
+
 /** Ends the cycle and records the tab it left on screen as most recently used. */
 async function finishCycle() {
   if (!cycle) return;
   const landedOn = cycle.order[cycle.position];
+  const { watched } = cycle;
   cycle = null;
   clearTimeout(cycleTimer);
+  for (const tabId of watched) {
+    chrome.tabs.sendMessage(tabId, { type: 'cycle-unwatch' }).catch(() => {});
+  }
 
   // Record the tab the cycle stopped on (with Brave-style history stepCycle
   // already did). If it has since closed or the user clicked another tab in
@@ -257,7 +291,16 @@ async function finishCycle() {
 }
 
 async function finishCycleIfPaused() {
-  if (cycle && Date.now() - cycle.lastPressAt >= settings.pauseMs) await finishCycle();
+  if (cycle && !cycle.releaseAware && Date.now() - cycle.lastPressAt >= settings.pauseMs) {
+    await finishCycle();
+  }
+}
+
+/** Another app took focus, as Brave checks; a passing focus change between our own windows doesn't count. */
+async function finishCycleIfChromeUnfocused() {
+  if (!cycle) return;
+  const window = await chrome.windows.getLastFocused().catch(() => null);
+  if (!window?.focused) await finishCycle();
 }
 
 /**
@@ -266,18 +309,35 @@ async function finishCycleIfPaused() {
  * jumps to the least recently used tab, as Ctrl+Shift+Tab does in Brave.
  */
 async function cycleRecentTabs(pressedAt, step) {
-  if (!cycle || pressedAt - cycle.lastPressAt >= settings.pauseMs) {
+  const paused = cycle && !cycle.releaseAware && pressedAt - cycle.lastPressAt >= settings.pauseMs;
+  if (!cycle || paused) {
     await finishCycle();
     const { order, windowId } = await cycleOrder();
     if (order.length < 2) return;
-    cycle = { order, position: 0, windowId, visited: new Set(), lastPressAt: pressedAt };
+    cycle = {
+      id: ++cycleCount,
+      order,
+      position: 0,
+      windowId,
+      visited: new Set(),
+      watched: new Set(),
+      lastPressAt: pressedAt,
+      releaseAware: false,
+    };
+    // A quick release can still land on the tab the cycle started from.
+    watchForRelease(order[0]);
   }
 
   cycle.lastPressAt = pressedAt;
-  await stepCycle(step);
+  const shown = await stepCycle(step);
 
+  // Like Brave, keep cycling for as long as Ctrl is held where the page can
+  // report its release; elsewhere a pause ends the cycle.
+  cycle.releaseAware = shown !== undefined && (await watchForRelease(shown));
   clearTimeout(cycleTimer);
-  cycleTimer = setTimeout(() => enqueue(finishCycleIfPaused), settings.pauseMs);
+  if (!cycle.releaseAware) {
+    cycleTimer = setTimeout(() => enqueue(finishCycleIfPaused), settings.pauseMs);
+  }
 }
 
 /** Records a tab the user switched to by any means other than cycling. */
@@ -325,6 +385,45 @@ async function onSwitchCommand(command, pressedAt) {
 }
 
 // ---------------------------------------------------------------------------
+// Optional release detection (content.js)
+// ---------------------------------------------------------------------------
+
+/**
+ * Registers content.js while the user has granted site access (from
+ * options.html) and unregisters it once they withdraw it.
+ */
+async function syncReleaseWatcher({ addToOpenTabs = false } = {}) {
+  releaseDetection = await chrome.permissions.contains(RELEASE_ACCESS);
+  const registered = await chrome.scripting.getRegisteredContentScripts({ ids: [RELEASE_SCRIPT_ID] });
+
+  if (releaseDetection && registered.length === 0) {
+    await chrome.scripting.registerContentScripts([{
+      id: RELEASE_SCRIPT_ID,
+      matches: ['<all_urls>'],
+      js: ['content.js'],
+      runAt: 'document_start',
+      allFrames: true,
+    }]);
+  } else if (!releaseDetection && registered.length > 0) {
+    await chrome.scripting.unregisterContentScripts({ ids: [RELEASE_SCRIPT_ID] });
+  }
+
+  if (releaseDetection && addToOpenTabs) await addReleaseWatcherToOpenTabs();
+}
+
+/** Registered content scripts only reach pages loaded after registration. */
+async function addReleaseWatcherToOpenTabs() {
+  const tabs = await chrome.tabs.query({});
+  await Promise.all(
+    tabs.map((tab) =>
+      chrome.scripting
+        .executeScript({ target: { tabId: tab.id, allFrames: true }, files: ['content.js'] })
+        .catch(() => {}), // chrome:// pages, the Web Store, discarded tabs
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Toolbar menu and pages
 // ---------------------------------------------------------------------------
 
@@ -348,9 +447,11 @@ function createMenus() {
 // Load settings and the saved stack before any queued event touches them.
 enqueue(loadSettings);
 enqueue(restoreStack);
+enqueue(() => syncReleaseWatcher());
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
   enqueue(seedFromOpenTabs);
+  enqueue(() => syncReleaseWatcher({ addToOpenTabs: true }));
   getIsEnabled().then(renderBadge);
   createMenus();
   // First install: show how it works and how to set up Ctrl+Tab.
@@ -382,10 +483,16 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  enqueue(() => {
+  enqueue(async () => {
     removeFromStack(tabId);
-    return saveStack();
+    await saveStack();
+    await finishCycle(); // as in Brave, closing a tab ends a cycle
   });
+});
+
+// As in Brave, opening a tab ends a cycle.
+chrome.tabs.onCreated.addListener(() => {
+  enqueue(finishCycle);
 });
 
 // Chrome can swap a tab's ID (e.g. when a prerendered page is shown).
@@ -401,7 +508,12 @@ chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
 // Switching windows doesn't fire tabs.onActivated (the other window's tab is
 // already active), so record the newly focused window's active tab here.
 chrome.windows.onFocusChanged.addListener((windowId) => {
-  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+  if (windowId === chrome.windows.WINDOW_ID_NONE) {
+    // Some systems report "no window" briefly while focus moves between our
+    // own windows, so check again shortly before ending a cycle.
+    setTimeout(() => enqueue(finishCycleIfChromeUnfocused), 200);
+    return;
+  }
 
   enqueue(async () => {
     const [tab] = await chrome.tabs.query({ active: true, windowId });
@@ -411,6 +523,23 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
 
 chrome.action.onClicked.addListener(() => {
   toggleEnabled().catch((error) => console.error('[MRU]', error));
+});
+
+// Site access for release detection granted or withdrawn (options.html, or
+// the extension's site access settings in Chrome).
+chrome.permissions.onAdded.addListener(() => {
+  enqueue(() => syncReleaseWatcher({ addToOpenTabs: true }));
+});
+chrome.permissions.onRemoved.addListener(() => {
+  enqueue(() => syncReleaseWatcher());
+});
+
+// content.js: Ctrl was released (or the mouse pressed) during a cycle.
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type !== 'cycle-end') return;
+  enqueue(async () => {
+    if (cycle?.id === message.cycleId) await finishCycle();
+  });
 });
 
 chrome.commands.onCommand.addListener((command) => {

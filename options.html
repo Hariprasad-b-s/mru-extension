@@ -139,6 +139,7 @@
         <li>Press <kbd data-shortcut="switch-to-previous-tab">Alt+Y</kbd> once to go to your previous tab, and again later to come back.</li>
         <li>Press it again before you pause to keep going back: 2nd, 3rd, 4th most recent tab, and so on.</li>
         <li><kbd data-shortcut="cycle-in-reverse">Alt+Shift+Y</kbd> goes the other way through the same list; on its own it jumps to the tab you used least recently.</li>
+        <li>Want it exactly like Brave, where letting go of Ctrl ends the cycle? Turn on <a href="#release-setting">End the cycle when I let go of Ctrl</a> below.</li>
       </ul>
     </section>
 
@@ -172,13 +173,23 @@
     <section>
       <h2>Settings <span class="saved" id="saved">Saved</span></h2>
 
+      <div class="setting" id="release-setting">
+        <label class="choice"><input type="checkbox" id="release-detection"> End the cycle when I let go of Ctrl (like Brave)</label>
+        <p>Hold Ctrl and keep tapping Tab for as long as you like; letting go ends the cycle. To notice that, a tiny listener runs in web pages,
+          so Chrome will ask to <em>"Read and change all your data on all websites"</em>. It only notices Ctrl being released (or a click)
+          while you switch tabs, and never reads or changes pages. Where extensions can't run (the New Tab page, chrome:// pages,
+          the Chrome Web Store), the pause below is used instead.</p>
+        <p class="status" id="release-status"></p>
+      </div>
+
       <div class="setting">
         <label for="pause">Pause that ends a cycle</label>
         <div class="row">
           <input type="range" id="pause" min="300" max="1500" step="50">
           <output id="pause-value" for="pause"></output>
         </div>
-        <p>Presses closer together than this keep going further back. Lower it if you tap quickly; raise it if you like to look at each tab.</p>
+        <p>Presses closer together than this keep going further back. Lower it if you tap quickly; raise it if you like to look at each tab.
+          With "let go of Ctrl" on, this is only used on pages where the release can't be detected.</p>
       </div>
 
       <div class="setting">
@@ -194,7 +205,7 @@
     </section>
 
     <footer>
-      No overlays, no page access, no data collected; settings stay on your device.
+      No overlays and no data collected; settings stay on your device. Page access only if you turn on "let go of Ctrl".
       <a href="https://github.com/Hariprasad-b-s/mru-extension#readme" target="_blank" rel="noopener">Help</a> ·
       <a href="https://github.com/Hariprasad-b-s/mru-extension/blob/main/PRIVACY.md" target="_blank" rel="noopener">Privacy</a>
     </footer>
