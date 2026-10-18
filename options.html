@@ -44,7 +44,7 @@
     header h1 { margin: 0; font-size: 24px; }
     header p { margin: 2px 0 0; color: var(--muted); }
     .power { margin-left: auto; display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
-    .welcome {
+    .welcome, .whats-new {
       display: none;
       background: var(--accent-soft);
       border: 1px solid var(--border);
@@ -52,7 +52,15 @@
       padding: 14px 18px;
       margin-bottom: 20px;
     }
-    body.is-welcome .welcome { display: block; }
+    body.is-welcome .welcome, body.is-whats-new .whats-new { display: block; }
+    .whats-new .muted { margin: 10px 0 0; }
+    .nudge {
+      margin: 0 0 12px;
+      padding: 8px 12px;
+      background: var(--card);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+    }
     section {
       background: var(--card);
       border: 1px solid var(--border);
@@ -133,6 +141,21 @@
       puzzle-piece menu to see its ON/OFF badge; clicking the icon turns it on or off.
     </div>
 
+    <div class="whats-new">
+      <h2>What's new in version <span id="whats-new-version"></span></h2>
+      <p class="nudge" id="ctrl-tab-nudge" hidden><strong>One more step for Ctrl+Shift+Tab:</strong> you set up Ctrl+Tab
+        before Ctrl+Shift+Tab existed. Run the <a href="#ctrl-tab">setup code</a> once more and both will work.</p>
+      <ul>
+        <li><strong>Go the other way:</strong> <kbd data-shortcut="cycle-in-reverse">Alt+Shift+Y</kbd> walks your recent tabs in reverse;
+          on its own it jumps to the tab you used least recently.</li>
+        <li><strong>Brave-style history:</strong> every tab you land on while cycling counts as recently used.</li>
+        <li><strong>Settings</strong>, on this page: the pause that ends a cycle, and one window or all.</li>
+        <li><strong>New and optional:</strong> <a href="#release-setting">end the cycle when you let go of Ctrl</a>, exactly like Brave.
+          It stays off unless you turn it on.</li>
+      </ul>
+      <p class="muted">Rather not see this after the next update? Turn off <a href="#whats-new-setting">Show what's new after an update</a> below.</p>
+    </div>
+
     <section>
       <h2>How it works</h2>
       <ul>
@@ -201,6 +224,12 @@
         <label>Which tabs to cycle through</label>
         <label class="choice"><input type="radio" name="scope" value="window"> Only the window I'm in</label>
         <label class="choice"><input type="radio" name="scope" value="all"> All windows</label>
+      </div>
+
+      <div class="setting" id="whats-new-setting">
+        <label class="choice"><input type="checkbox" id="show-whats-new"> Show what's new after an update</label>
+        <p>When an update adds features, this page opens once in a background tab to list them, and the toolbar icon shows NEW
+          until you've seen it. Bug-fix updates don't.</p>
       </div>
     </section>
 

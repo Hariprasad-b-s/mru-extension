@@ -7,7 +7,8 @@ Chrome extension (Manifest V3) that switches tabs in most-recently-used order, l
 - After every change: commit, push the working branch, then fast-forward `main` to it (`git push origin HEAD:main`). Always merge to main; don't ask.
 - Every package uploaded to the store needs a **higher** `"version"` in `manifest.json` than the last upload. Bump it with any user-facing change.
 - Keep `README.md`, `PRIVACY.md` and `store/listing.md` in step with the behaviour; the store listing's privacy-policy URL points at `PRIVACY.md` on `main`.
-- Updates must be smooth: every new feature is an opt-in setting, off by default. With it off, an updated install behaves exactly like the previous version, keeps its settings and shortcuts, and gets no new permission warning. `tests/update.mjs` checks this against the previous store version (`FROM_COMMIT`, default 1.1.0's `8e26dbb`); point it at the newest submitted version when one ships.
+- Updates must be smooth: every new feature is an opt-in setting, off by default. With it off, an updated install behaves exactly like the previous version, keeps its settings and shortcuts, and gets no new permission warning. `tests/update.mjs` checks this against the previous store version (`FROM_COMMIT`, default 1.1.0's `8e26dbb`; `run.sh` also runs it from the live 1.0.2, `9965b31`); point it at the newest submitted version when one ships.
+- The one exception, which the owner asked for because the store updates silently and most users never see a post about a release: after a **feature update** (the major or minor version changes) the icon shows NEW and `options.html#whats-new` opens once in a background tab. Patch versions stay silent, so ship fixes as x.y.Z. It's the `showWhatsNew` setting, on by default. Rewrite the `.whats-new` list in `options.html` for each feature release; for 1.2.0 it covers 1.1.0 too, because 1.1.0 had no notice.
 - No overlays or UI injected into pages. No access to web pages by default: the "let go of Ctrl" listener is opt-in (optional host permission), so installs and updates show no permission warning.
 - Store field limits: manifest `description` ≤ 132 characters; store description ≤ 16,000; test instructions ≤ 500.
 
@@ -17,7 +18,7 @@ Chrome extension (Manifest V3) that switches tabs in most-recently-used order, l
 | --- | --- | --- |
 | 1.0.2 | `9965b31` | Live (1.0.1 code, re-uploaded as 1.0.2) |
 | 1.1.0 | `8e26dbb` | Submitted for review: settings/welcome page, reverse cycling, Brave-style history |
-| 1.2.0 | latest `main` | Not submitted: 1.1.0 plus the optional "end the cycle when I let go of Ctrl" (off by default) |
+| 1.2.0 | latest `main` | Not submitted: 1.1.0 plus the optional "end the cycle when I let go of Ctrl" (off by default) and the what's-new notice after feature updates |
 
 (Git tags can't be pushed from the cloud sandbox, hence the commit IDs.)
 
@@ -25,7 +26,7 @@ Chrome extension (Manifest V3) that switches tabs in most-recently-used order, l
 
 - `background.js`: service worker. MRU stack (mirrored to `chrome.storage.session`), cycling, settings, ON/OFF badge and icon, toolbar menu, optional release detection.
 - `content.js`: optional page listener that reports Ctrl being released during a cycle; registered with `chrome.scripting` only after the user grants `<all_urls>` on the settings page.
-- `options.html` / `options.js`: settings page, also opened once after install as a welcome page.
+- `options.html` / `options.js`: settings page, also opened once after install as a welcome page (`#welcome`) and after a feature update as a what's-new page (`#whats-new`; the `whatsNew` key in `chrome.storage.local` keeps the NEW badge until its tab is activated).
 - `scripts/set-ctrl-tab-shortcut.js`: code users paste into DevTools on `chrome://extensions/shortcuts` to bind Ctrl+Tab and Ctrl+Shift+Tab. Shown on the settings page too.
 - `scripts/package.sh`: builds `dist/mru-tab-switcher-<version>.zip` for the store (strips the dev `"key"`). Add any new runtime file to it.
 - `store/`: listing text (`listing.md`, all dashboard fields), screenshots, promo tile.
@@ -42,4 +43,5 @@ Chrome extension (Manifest V3) that switches tabs in most-recently-used order, l
 - The service worker is stopped after ~30 s idle, so in-memory state must be restored from `chrome.storage.session`.
 - Extensions never learn about key releases; only a page script (content.js) can see Ctrl being let go. It can't run on `chrome://` pages, the New Tab page or the Web Store, so the pause fallback stays.
 - Without the `tabs` permission, `tab.url` is unavailable even for the extension's own pages; use `chrome.runtime.getContexts`.
-- In tests: the permission prompt has "Deny" focused (use Tab, Enter); `chrome.runtime.reload()` only works with Developer mode on; Playwright doesn't hand back a restarted service worker; `data:` pages don't get content scripts (serve pages over local HTTP to test release detection); the welcome tab opened on install must be closed first.
+- `chrome.tabs.create` with no normal window open (an update applied while Chrome starts) opens a new window with the tab active, even with `active: false`; the what's-new tab waits for Chrome's first window instead.
+- In tests: the permission prompt has "Deny" focused (use Tab, Enter); `chrome.runtime.reload()` only works with Developer mode on; Playwright doesn't hand back a restarted service worker; Playwright's focus emulation makes every tab report `document.visibilityState === 'visible'` (real Chrome says `hidden` for background tabs), so check `chrome.tabs.getCurrent()`'s `active` instead; `data:` pages don't get content scripts (serve pages over local HTTP to test release detection); the welcome tab opened on install must be closed first.

@@ -1,13 +1,14 @@
 # Privacy policy
 
-_MRU tab switcher - Smooth like brave browser ("MRU Tab Switcher"). Last updated: 17 October 2026._
+_MRU tab switcher - Smooth like brave browser ("MRU Tab Switcher"). Last updated: 18 October 2026._
 
 MRU Tab Switcher does not collect, transmit, sell or share any personal data or browsing data.
 
 ## What it stores, and where
 
 - **The order you used your tabs in**, as a list of Chrome's numeric tab IDs. It's kept in `chrome.storage.session`, which lives in the browser's memory on your device and is cleared when the browser closes. It contains no URLs, page titles or page content.
-- **Whether the extension is switched on, and your settings** (the pause length, Brave-style history on or off, and whether to cycle through one window or all), in `chrome.storage.local` on your device.
+- **Whether the extension is switched on, and your settings** (the pause length, Brave-style history on or off, whether to cycle through one window or all, and whether to show what's new after an update), in `chrome.storage.local` on your device.
+- **Whether you've seen what's new** since the last update: the extension's version number, kept in `chrome.storage.local` until you've opened the page that lists the changes.
 
 Nothing else is stored.
 

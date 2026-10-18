@@ -11,7 +11,7 @@ Brave is another company's trademark. The Web Store's policies on impersonation,
 ## Publish, step by step
 
 1. **Register as a developer.** Sign in at the [Developer Dashboard](https://chrome.google.com/webstore/devconsole) with the Google account that should own the listing, pay the one-time registration fee, and verify your contact email. On the **Account** page, also declare your trader status (required for EU users): publishing as an individual rather than a business means **non-trader**.
-2. **Build the package.** In this repo, run `./scripts/package.sh`. It writes `dist/mru-tab-switcher-<version>.zip` containing only `manifest.json`, `background.js` and the icons, without the local development `"key"` (the store assigns its own ID).
+2. **Build the package.** In this repo, run `./scripts/package.sh`. It writes `dist/mru-tab-switcher-<version>.zip` containing only the files the extension runs (manifest, scripts, settings page and icons), without the local development `"key"` (the store assigns its own ID).
 3. **Upload it.** Dashboard → **New item** → upload the zip.
 4. **Store listing tab:** paste the description below, pick the category and language, and upload the images listed below.
 5. **Privacy tab:** fill it in from the answers below.
@@ -45,7 +45,8 @@ A simple settings page (right-click the toolbar icon → Options) lets you:
 • set the pause that ends a cycle, from 0.3 to 1.5 seconds, to match how fast you tap;
 • turn Brave-style history on or off;
 • optionally end the cycle the moment you let go of Ctrl, exactly like Brave (off by default; Chrome asks for site access when you turn it on);
-• choose between cycling the current window or all windows.
+• choose between cycling the current window or all windows;
+• turn off the short "What's new" page that opens once, in a background tab, after an update that adds features.
 
 ✦ SHORTCUTS
 Out of the box: Alt+Y, and Alt+Shift+Y for reverse (Control+Y and Control+Shift+Y on macOS). You can change them any time at chrome://extensions/shortcuts.
@@ -113,7 +114,7 @@ Switch between browser tabs in most-recently-used order with a keyboard shortcut
 **Permission justification, `storage`:**
 
 ```
-Saves whether the extension is switched on, the user's settings (pause length, Brave-style history, one window or all), and the order the user recently used their tabs in (as numeric tab IDs only), so they survive the background service worker being restarted. Nothing is sent anywhere.
+Saves whether the extension is switched on, the user's settings (pause length, Brave-style history, one window or all, whether to show what's new after an update), whether the user has seen what's new in the latest update (the version number only), and the order the user recently used their tabs in (as numeric tab IDs only), so they survive the background service worker being restarted. Nothing is sent anywhere.
 ```
 
 **Permission justification, `contextMenus`:**

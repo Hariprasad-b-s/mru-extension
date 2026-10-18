@@ -10,7 +10,9 @@
  * windows. Optionally (a setting that asks the user for site access),
  * content.js reports when Ctrl is released, so a cycle lasts while Ctrl is
  * held and ends on release, as in Brave. It never changes page content and
- * shows no overlays.
+ * shows no overlays. Chrome updates extensions silently, so after an update
+ * that adds features the toolbar icon shows NEW and the settings page opens
+ * once in a background tab to say what's new.
  *
  * MV3 service workers are shut down when idle, so the MRU stack is mirrored
  * to chrome.storage.session (in-memory, cleared on browser restart) and
@@ -35,6 +37,7 @@ const STORAGE_KEYS = {
   isEnabled: 'isEnabled', // chrome.storage.local: persists across restarts
   settings: 'settings',   // chrome.storage.local: see DEFAULT_SETTINGS
   mruStack: 'mruStack',   // chrome.storage.session: survives worker suspension
+  whatsNew: 'whatsNew',   // chrome.storage.local: version whose notice is unseen
 };
 
 /** User settings, edited on options.html. */
@@ -42,14 +45,18 @@ const DEFAULT_SETTINGS = {
   pauseMs: 700,        // presses closer together than this keep cycling
   braveHistory: true,  // tabs shown while cycling count as used, as in Brave
   scope: 'window',     // 'window': cycle the focused window; 'all': every window
+  showWhatsNew: true,  // after a feature update, say what's new (see announceUpdate)
 };
 
 const BADGE = {
   on: { text: 'ON', color: '#2E7D32', icon: { 16: 'icons/icon-16.png', 32: 'icons/icon-32.png' } },
   off: { text: 'OFF', color: '#757575', icon: { 16: 'icons/icon-off-16.png', 32: 'icons/icon-off-32.png' } },
+  whatsNew: { text: 'NEW', color: '#1D4ED8' },
 };
 
 const HELP_URL = 'https://github.com/Hariprasad-b-s/mru-extension#readme';
+const SETTINGS_PAGE = 'options.html';
+const WHATS_NEW_PAGE = 'options.html#whats-new';
 
 /** Optional site access for content.js, requested from options.html. */
 const RELEASE_ACCESS = { origins: ['<all_urls>'] };
@@ -150,23 +157,40 @@ async function getIsEnabled() {
   return isEnabled;
 }
 
-async function renderBadge(isEnabled) {
-  const { text, color, icon } = isEnabled ? BADGE.on : BADGE.off;
+/** ON or OFF (the icon goes gray when OFF), or NEW until an update's notice is seen. */
+async function renderBadge() {
+  const isEnabled = await getIsEnabled();
+  const { [STORAGE_KEYS.whatsNew]: whatsNew } = await chrome.storage.local.get(STORAGE_KEYS.whatsNew);
+  const { icon, ...onOff } = isEnabled ? BADGE.on : BADGE.off;
+  const { text, color } = whatsNew ? BADGE.whatsNew : onOff;
   const hint = isEnabled ? 'click to turn OFF' : 'click to turn ON';
+  const title = whatsNew
+    ? `MRU Tab Switcher was updated to ${whatsNew}: click to see what's new`
+    : `MRU Tab Switcher: ${text} (${hint})`;
 
   await Promise.all([
     chrome.action.setIcon({ path: icon }),
     chrome.action.setBadgeText({ text }),
     chrome.action.setBadgeBackgroundColor({ color }),
     chrome.action.setBadgeTextColor({ color: '#FFFFFF' }),
-    chrome.action.setTitle({ title: `MRU Tab Switcher: ${text} (${hint})` }),
+    chrome.action.setTitle({ title }),
   ]);
 }
 
 async function toggleEnabled() {
   const isEnabled = !(await getIsEnabled());
   await chrome.storage.local.set({ [STORAGE_KEYS.isEnabled]: isEnabled });
-  await renderBadge(isEnabled);
+  await renderBadge();
+}
+
+/** The toolbar icon: shows an unseen what's-new notice, otherwise turns switching on or off. */
+async function onActionClicked() {
+  const { [STORAGE_KEYS.whatsNew]: whatsNew } = await chrome.storage.local.get(STORAGE_KEYS.whatsNew);
+  if (whatsNew) {
+    await showSettingsPage();
+  } else {
+    await toggleEnabled();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -424,6 +448,62 @@ async function addReleaseWatcherToOpenTabs() {
 }
 
 // ---------------------------------------------------------------------------
+// What's new after an update
+// ---------------------------------------------------------------------------
+
+/** Updates that add features (a new major or minor version) get a notice; fixes don't. */
+function isFeatureUpdate(previousVersion, version) {
+  const minor = (v) => v.split('.').slice(0, 2).join('.');
+  return Boolean(previousVersion) && minor(previousVersion) !== minor(version);
+}
+
+/**
+ * The Web Store updates extensions silently, so after a feature update the
+ * badge shows NEW and the settings page, which then lists what's new (see
+ * options.js), opens once behind the current tab. Seeing it clears the badge.
+ */
+async function announceUpdate(previousVersion) {
+  const { version } = chrome.runtime.getManifest();
+  if (!settings.showWhatsNew || !isFeatureUpdate(previousVersion, version)) return;
+  await chrome.storage.local.set({ [STORAGE_KEYS.whatsNew]: version });
+  await openInBackground(WHATS_NEW_PAGE);
+}
+
+/**
+ * Opens a page without switching to it. An update can be applied while Chrome
+ * starts, before it has a window, and a tab opened then would get a window of
+ * its own, so in that case wait for Chrome's first window.
+ */
+async function openInBackground(url) {
+  const window = await chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null);
+  if (window && !window.incognito) {
+    await chrome.tabs.create({ windowId: window.id, url, active: false });
+    return;
+  }
+  chrome.windows.onCreated.addListener(function onFirstWindow(created) {
+    if (created.type !== 'normal' || created.incognito) return;
+    chrome.windows.onCreated.removeListener(onFirstWindow);
+    // Give Chrome a moment to restore the last session's tabs into it.
+    setTimeout(() => {
+      chrome.tabs.create({ windowId: created.id, url, active: false }).catch((error) => console.error('[MRU]', error));
+    }, 1000);
+  });
+}
+
+/** Brings an open settings page to the front, or opens one. */
+async function showSettingsPage() {
+  // runtime.getContexts needs Chrome 116; without it, just open a new tab.
+  const pages = (await chrome.runtime.getContexts?.({ contextTypes: ['TAB'] })) ?? [];
+  const page = pages.find((c) => c.documentUrl.startsWith(chrome.runtime.getURL(SETTINGS_PAGE)));
+  if (!page) {
+    await openPage(WHATS_NEW_PAGE);
+    return;
+  }
+  const tab = await chrome.tabs.update(page.tabId, { active: true });
+  await chrome.windows.update(tab.windowId, { focused: true });
+}
+
+// ---------------------------------------------------------------------------
 // Toolbar menu and pages
 // ---------------------------------------------------------------------------
 
@@ -449,22 +529,25 @@ enqueue(loadSettings);
 enqueue(restoreStack);
 enqueue(() => syncReleaseWatcher());
 
-chrome.runtime.onInstalled.addListener(({ reason }) => {
+chrome.runtime.onInstalled.addListener(({ reason, previousVersion }) => {
   enqueue(seedFromOpenTabs);
   enqueue(() => syncReleaseWatcher({ addToOpenTabs: true }));
-  getIsEnabled().then(renderBadge);
+  renderBadge();
   createMenus();
   // First install: show how it works and how to set up Ctrl+Tab.
   if (reason === chrome.runtime.OnInstalledReason.INSTALL) openPage('options.html#welcome');
+  // Update: say what's new, once (after settings are loaded).
+  if (reason === chrome.runtime.OnInstalledReason.UPDATE) enqueue(() => announceUpdate(previousVersion));
 });
 
-// Settings and the ON/OFF state can also change from options.html.
+// Settings and the ON/OFF state can also change from options.html, which
+// also clears the what's-new notice once it has been seen.
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
   if (changes[STORAGE_KEYS.settings]) {
     settings = { ...DEFAULT_SETTINGS, ...changes[STORAGE_KEYS.settings].newValue };
   }
-  if (changes[STORAGE_KEYS.isEnabled]) renderBadge(changes[STORAGE_KEYS.isEnabled].newValue !== false);
+  if (changes[STORAGE_KEYS.isEnabled] || changes[STORAGE_KEYS.whatsNew]) renderBadge();
 });
 
 chrome.contextMenus.onClicked.addListener(({ menuItemId }) => {
@@ -475,7 +558,7 @@ chrome.contextMenus.onClicked.addListener(({ menuItemId }) => {
 
 chrome.runtime.onStartup.addListener(() => {
   enqueue(seedFromOpenTabs);
-  getIsEnabled().then(renderBadge);
+  renderBadge();
 });
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
@@ -528,7 +611,7 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
 });
 
 chrome.action.onClicked.addListener(() => {
-  toggleEnabled().catch((error) => console.error('[MRU]', error));
+  onActionClicked().catch((error) => console.error('[MRU]', error));
 });
 
 // Site access for release detection granted or withdrawn (options.html, or

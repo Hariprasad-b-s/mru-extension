@@ -34,12 +34,13 @@ It works straight away with **Alt+Y** and **Alt+Shift+Y** (in reverse), or **Con
 
 ## Settings
 
-Right-click the toolbar icon and choose **Options** (or open the extension's details and click **Extension options**). The same page opens once after you install, as a welcome page.
+Right-click the toolbar icon and choose **Options** (or open the extension's details and click **Extension options**). The same page opens once after you install, as a welcome page, and once after an update that adds features, to say what's new.
 
 - **Pause that ends a cycle:** from 0.3 to 1.5 seconds (0.7 by default). Presses closer together than this keep going further back.
 - **Brave-style history** (on by default): every tab you land on while cycling counts as recently used. Turn it off to count only the tab you stop on.
 - **End the cycle when I let go of Ctrl** (off by default): Brave's exact behaviour. Chrome asks you to allow site access ("Read and change all your data on all websites") when you turn it on, because a tiny listener has to run in pages to notice the key being released. Untick it to give the access back. On pages where extensions can't run (the New Tab page, `chrome://` pages, the Chrome Web Store) the pause is used instead.
 - **Which tabs to cycle through:** only the window you're in (default), or all windows; with all windows, switching to a tab in another window brings that window to the front.
+- **Show what's new after an update** (on by default): Chrome installs updates silently, so after one that adds features this page opens once in a background tab to list them, and the toolbar badge shows **NEW** until you've looked (clicking the icon then opens it instead of switching OFF). If you set up Ctrl+Tab before Ctrl+Shift+Tab existed, it tells you to run the setup code once more. Bug-fix updates stay silent.
 - An **On/Off** switch, the current shortcuts, and the Ctrl+Tab setup below with a **Copy setup code** button.
 
 The toolbar icon's right-click menu also has **Change keyboard shortcuts**, **Set up Ctrl+Tab** and **Help**.

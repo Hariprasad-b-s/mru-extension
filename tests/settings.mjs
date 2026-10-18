@@ -37,11 +37,14 @@ const ui = await opts.evaluate(() => ({
   code: document.getElementById('setup-code').textContent,
   status: document.getElementById('ctrl-tab-status').textContent,
   pause: document.getElementById('pause-value').textContent,
+  whatsNew: document.querySelector('.whats-new').checkVisibility(),
+  showWhatsNew: document.getElementById('show-whats-new').checked,
 }));
 check('page shows the current shortcuts', ui.shortcuts.includes('Alt+Y') && ui.shortcuts.includes('Alt+Shift+Y'), ui.shortcuts);
 check('page shows the setup code from the script file', ui.code === readFileSync(`${ext}/scripts/set-ctrl-tab-shortcut.js`, 'utf8'), ui.code.slice(0, 40));
 check('Ctrl+Tab status: not set up yet', /Not set up yet/.test(ui.status), ui.status);
 check('default pause shown as 0.70 s', ui.pause === '0.70 s', ui.pause);
+check('fresh install: no what\'s-new card; "Show what\'s new after an update" on', !ui.whatsNew && ui.showWhatsNew, ui);
 
 // Screenshots for a visual check (light, dark).
 await opts.setViewportSize({ width: 900, height: 1400 });
@@ -50,9 +53,9 @@ await opts.emulateMedia({ colorScheme: 'dark' }); await opts.screenshot({ path: 
 await opts.emulateMedia({ colorScheme: 'light' });
 
 // 4. Changing settings on the page reaches the background.
-await opts.click('#brave-history'); await opts.check('input[name="scope"][value="all"]');
+await opts.click('#brave-history'); await opts.check('input[name="scope"][value="all"]'); await opts.click('#show-whats-new');
 await opts.fill('#pause', '300'); await opts.dispatchEvent('#pause', 'change'); await sleep(300);
-check('settings saved and picked up by the background', JSON.stringify(await ev(() => settings)) === JSON.stringify({ pauseMs: 300, braveHistory: false, scope: 'all' }), await ev(() => settings));
+check('settings saved and picked up by the background', JSON.stringify(await ev(() => settings)) === JSON.stringify({ pauseMs: 300, braveHistory: false, scope: 'all', showWhatsNew: false }), await ev(() => settings));
 
 // 5. ON/OFF from the page updates the badge (and icon).
 await opts.click('#enabled'); await sleep(300);
@@ -100,10 +103,71 @@ execSync('xdotool keydown alt key y keyup alt'); await sleep(1200);
 const where = await ev(async (E) => { const t = await chrome.tabs.get(E); const w = await chrome.windows.get(t.windowId); return { active: t.active, focused: w.focused }; }, tabs.E);
 check('scope "all windows": goes to E in window 1 and focuses that window', where.active && where.focused, where);
 
-// 7. Status after running the Ctrl+Tab setup script.
+// 7. Ctrl+Tab status: only Ctrl+Tab (as set up in version 1.0), then both.
 const mgr2 = await ctx.newPage(); await mgr2.goto('chrome://extensions/shortcuts');
+await mgr2.evaluate((id) => new Promise(r => chrome.developerPrivate.updateExtensionCommand({ extensionId: id, commandName: 'switch-to-previous-tab', keybinding: 'Ctrl+Tab' }, r)), id);
+const opts2 = await ctx.newPage(); await opts2.goto(`chrome-extension://${id}/options.html#whats-new`); await sleep(600);
+const ctrlTab = () => opts2.evaluate(async () => {
+  await renderShortcuts();
+  return {
+    status: document.getElementById('ctrl-tab-status').textContent,
+    card: document.querySelector('.whats-new').checkVisibility(),
+    nudge: document.getElementById('ctrl-tab-nudge').checkVisibility(),
+    shortcuts: [...document.querySelectorAll('[data-shortcut]')].map(k => k.textContent),
+  };
+});
+let after = await ctrlTab();
+check('only Ctrl+Tab set up: says so, and what\'s new asks to run the setup code once more', after.card && after.nudge && /^Ctrl\+Tab is set up, but Ctrl\+Shift\+Tab isn't yet \(the reverse shortcut is Alt\+Shift\+Y\)/.test(after.status), after);
 await mgr2.evaluate(readFileSync(`${ext}/scripts/set-ctrl-tab-shortcut.js`, 'utf8')); await sleep(500);
-const opts2 = await ctx.newPage(); await opts2.goto(`chrome-extension://${id}/options.html#ctrl-tab`); await sleep(600);
-const after = await opts2.evaluate(() => ({ status: document.getElementById('ctrl-tab-status').textContent, shortcuts: [...document.querySelectorAll('[data-shortcut]')].map(k => k.textContent) }));
-check('after setup, the page shows Ctrl+Tab as set up', /Set up: the shortcut is Ctrl\+Tab/.test(after.status) && after.shortcuts.includes('Ctrl+Shift+Tab'), after);
+after = await ctrlTab();
+check('after setup, the page shows Ctrl+Tab and Ctrl+Shift+Tab as set up', after.status === '✓ Set up: Ctrl+Tab and Ctrl+Shift+Tab.' && !after.nudge && after.shortcuts.includes('Ctrl+Shift+Tab'), after);
+await opts2.close(); await mgr2.close();
+
+// 8. What's new after an update (onInstalled calls announceUpdate; called directly here).
+const version = await ev(() => chrome.runtime.getManifest().version);
+const newsTabs = () => ev(async () => Promise.all((await chrome.runtime.getContexts({ contextTypes: ['TAB'] }))
+  .filter(c => c.documentUrl.endsWith('/options.html#whats-new'))
+  .map(async c => ({ id: c.tabId, active: (await chrome.tabs.get(c.tabId)).active }))));
+const badge = () => ev(async () => ({ text: await chrome.action.getBadgeText({}), title: await chrome.action.getTitle({}),
+  pending: (await chrome.storage.local.get('whatsNew')).whatsNew ?? null, on: await getIsEnabled() }));
+const announce = async (from) => { await ev((from) => enqueue(() => announceUpdate(from)), from); await sleep(800); };
+check('only feature updates count: 1.1 -> 1.2, 1.0.2 -> 1.2.0, 1.9 -> 2.0 yes; 1.2.0 -> 1.2.1 and reloads no',
+  await ev(() => [isFeatureUpdate('1.1.0', '1.2.0'), isFeatureUpdate('1.0.2', '1.2.0'), isFeatureUpdate('1.9.0', '2.0'),
+    !isFeatureUpdate('1.2.0', '1.2.1'), !isFeatureUpdate('1.2.0', '1.2.0'), !isFeatureUpdate(undefined, '1.2.0')].every(Boolean)));
+await announce('1.1.0');
+check('"Show what\'s new" off: an update opens nothing, badge stays ON', (await newsTabs()).length === 0 && (await badge()).text === 'ON', { tabs: await newsTabs(), badge: await badge() });
+await set({ showWhatsNew: true });
+await announce('1.1.0');
+let news = await newsTabs(); let b = await badge();
+check('feature update: what\'s new opens once, in a background tab', news.length === 1 && !news[0].active, news);
+check('...and the badge says NEW', b.text === 'NEW' && b.title === `MRU Tab Switcher was updated to ${version}: click to see what's new`, b);
+await announce(version);
+check('reload of the same version: nothing more', (await newsTabs()).length === 1, await newsTabs());
+await ev(() => onActionClicked()); await sleep(800);
+news = await newsTabs(); b = await badge();
+check('icon click while NEW: brings what\'s new to the front, doesn\'t switch OFF', news.length === 1 && news[0].active && b.on, { news, b });
+check('once seen: badge back to ON', b.text === 'ON' && b.pending === null && b.title === 'MRU Tab Switcher: ON (click to turn OFF)', b);
+await ev(() => onActionClicked()); await sleep(300);
+check('the next click switches OFF as usual', (await badge()).text === 'OFF');
+await ev(() => onActionClicked()); await sleep(300);
+await ev(async () => { for (const c of await chrome.runtime.getContexts({ contextTypes: ['TAB'] })) await chrome.tabs.remove(c.tabId); });
+await announce('1.1.0');
+await ev(async () => { for (const c of await chrome.runtime.getContexts({ contextTypes: ['TAB'] })) await chrome.tabs.remove(c.tabId); }); await sleep(300);
+check('closed without being seen: NEW stays', (await badge()).text === 'NEW', await badge());
+await ev(() => onActionClicked()); await sleep(800);
+news = await newsTabs(); b = await badge();
+check('...then the icon opens what\'s new in a new tab and NEW goes', news.length === 1 && news[0].active && b.text === 'ON', { news, b });
+
+// 9. An update applied while Chrome starts, before it has a window: waits for
+// Chrome's first window instead of opening one of its own.
+await ev(async () => {
+  await chrome.windows.create({ type: 'popup', url: 'data:text/html,<title>popup</title>popup' }); // keeps Chrome running
+  for (const w of await chrome.windows.getAll({ windowTypes: ['normal'] })) await chrome.windows.remove(w.id);
+}); await sleep(800);
+const normalWindows = () => ev(async () => (await chrome.windows.getAll({ windowTypes: ['normal'], populate: true })).map(w => w.tabs.length));
+await announce('1.1.0'); await sleep(700);
+check('no window yet: opens no window of its own', (await normalWindows()).length === 0, await normalWindows());
+await ev(() => chrome.windows.create({ url: 'data:text/html,<title>restored</title>restored' })); await sleep(2000);
+news = await newsTabs();
+check('...then opens in Chrome\'s first window, behind its tab', (await normalWindows()).join() === '2' && news.length === 1 && !news[0].active, { windows: await normalWindows(), news });
 await ctx.close();
